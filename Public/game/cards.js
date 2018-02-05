@@ -1,56 +1,61 @@
-var html =  "<h1>Start of JS</h1><h2>End of JS</h2>";
+function PlayingCard(suit, num, own) 
+{
+    this.suitnum = suit;
+    this.Number = num;
+    this.Owner = own;
+    switch(suit)
+    {
+        case 0: this.suitname = "Spades"; break;
+        case 1: this.suitname = "Clubs"; break;
+        case 2: this.suitname = "Hearts"; break;
+        case 3: this.suitname = "Diamonds"; break;
+        default: this.suitname = "Joker"; break;
+    }
+    switch (num)
+    {
+        case 0: this.numdisplay = "Ace"; break;
+        case 11: this.numdisplay = "Jack"; break;
+        case 12: this.numdisplay = "Queen"; break;
+        case 13: this.numdisplay = "King"; break;
+        default: this.numdisplay = num; break;
+    }
+    this.fullname = this.numdisplay + " of " + this.suitname;
+}
+
 var cards = [];
 
 function Main()
 {
     MakeDeck();
-    //html += "<p>This card is: " + cards[0, 0] + "</p>";
+}
+
+function CheckDeck()
+{
     for (const key in cards) {
         if (cards.hasOwnProperty(key)) {
             const card = cards[key];
             var para = document.createElement('p');
-            para.innerHTML = "This card is: " + card;
+            para.innerHTML = "This card is: " + card.fullname;
             document.body.appendChild(para);
         }
     }
-    
-
-    // for (const card in cards) {
-    //     if (cards.hasOwnProperty(card)) {
-    //         const element = cards[card];
-            
-    //     }
-    // }
-    //document.body.innerHTML = html;
 }
-window.addEventListener('load', Main);
-
 
 function MakeDeck()
 {   
-    for (var suit = 0; suit < 4; suit++)
-    { 
-        var suitname;
-        switch(suit)
-        {
-            case 0: suitname = "Spades"; break;
-            case 1: suitname = "Clubs"; break;
-            case 2: suitname = "Hearts"; break;
-            case 3: suitname = "Diamonds"; break;
-            default: suitname = "Joker"; break;
-        }
-        for (var number = 0; number < 14; number++)
-        {
-            var numdisplay;
-            switch (number)
-            {
-                case 0: numdisplay = "Ace"; break;
-                case 11: numdisplay = "Jack"; break;
-                case 12: numdisplay = "Queen"; break;
-                case 13: numdisplay = "King"; break;
-                default: numdisplay = number; break;
-            }
-            cards.push(numdisplay + " of " + suitname);
+    for (var suit = 0; suit < 4; suit++){ 
+        for (var number = 0; number < 14; number++){
+            cards.push(new PlayingCard(suit, number, "Deck"));
         }
     }
 }
+
+function Player(cards)
+{
+    for(var i = 0; i < 2; i++)
+    {
+        Math.floor(Math.random() * 52);
+    }
+}
+
+window.addEventListener('load', Main);

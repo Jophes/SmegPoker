@@ -6,6 +6,7 @@ var server = require('http').createServer(app);
 var io = require('socket.io')(server);
 const port = process.env.PORT || 8888;
 const validChars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const PAGE = { NONE: 0, LOGIN: 1, REGISTER: 2, GAME: 3 };
 var idCounter = 1;
 
 function GetTime() {
@@ -86,12 +87,45 @@ app.use(LogRequests);
 app.use(HandlePageGetRequest)
 app.use(express.static(__dirname + '/Public'));
 
-// Socket.IO
 
+// Page socket.io handlers
+// - Login
+function LoginPage(client) {
+    console.log('Login');
+}
+
+// - Register
+function RegisterPage(client) {
+    console.log('Register');
+}
+
+// - Game 
+function GamePage(client) {
+    console.log('Game');
+}
+
+const pages = { };
+pages[PAGE.LOGIN] = LoginPage;
+pages[PAGE.REGISTER] = RegisterPage;
+pages[PAGE.GAME] = GamePage;
+
+console.log();
+
+// Socket.IO
 io.on('connection', function(client) {
     var connection = { id: idCounter, socket: client, address: client.request.connection };
+    var pageObj;
     idCounter++;
     function log (message) { console.log(GetTime() + ' [Socket.IO] ' + connection.address.remoteAddress + ':' + connection.address.remotePort + ' id:' + connection.id + ' > ' + message); }
 
     log('Client connected');
+
+    function pageSetup(data) {
+        if (data.page && pages.hasOwnProperty(data.page)) {
+            pageObj = new (pages[data.page])();
+        }
+        client.removeListener('page_setup', pageSetup);
+    }
+
+    client.on('page_setup', pageSetup);
 });

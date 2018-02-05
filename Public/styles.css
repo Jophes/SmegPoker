@@ -8,7 +8,7 @@ body {
 
 #MainMenu {
     text-align: center;
-    
+    font-size: 1em;
     position: fixed;
     -webkit-transform: translate(-50%, -50%);
     transform: translate(-50%, -50%);
@@ -35,4 +35,17 @@ button {
     background-color: rgba(0,0,0,0);
     border: solid white 2px;
     font-family: 'Open Sans', sans-serif
+}
+button:focus {
+    outline: 0;
+}
+button:hover {
+    width: 102%;
+    -webkit-transform: translate(-1%, 0%);
+    transform: translate(-1%, 0%);
+}
+button:active {
+    width: 100%;
+    -webkit-transform: translate(0%, 0%);
+    transform: translate(0%, 0%);
 }

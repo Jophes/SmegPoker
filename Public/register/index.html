@@ -8,11 +8,11 @@
     <meta name="author" content="Smeg Heads">
 
     <link rel="stylesheet" href="../styles.css">
-    <script src="register.js"></script>
-
-  <!--[if lt IE 9]>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.js"></script>
-  <![endif]-->
+    <link rel="shortcut icon" type="image/png" href="../Resources/favicon.png"/>
+    
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/enums.js"></script>
+    <script src="/register/main.js"></script>
 </head>
 
 <body>
@@ -20,12 +20,13 @@
         <h1 id="Title">British Hold 'em</h1>
         <div id="Menu">
             <div class="MenuItem">Register</div>
-            <div><input id="dob" type="date" name="dob" min="1900-02-05" max=""/></div>
             <div id="email"><input type="text" name="email" placeholder="Email"/></div>
             <div id="Name"><input type="text" name="username" placeholder="Username"/></div>
             <div id="Password"><input type="password" name="password" placeholder="Password"/></div>
             <div id="ConfirmPassword"><input type="password" name="ConfirmPassword" placeholder="Confirm Password"/></div>
+            <div><input id="dob" type="date" name="dob" min="1900-02-05" max=""/></div>
             <button id="register" onclick="">Register</button>
+            <a href="../login/index.html"><button id="register" onclick="">Log in</button></a>
         </div>
     </div>
 </body>
