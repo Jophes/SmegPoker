@@ -1,18 +1,30 @@
 var html =  "<h1>Start of JS</h1><h2>End of JS</h2>";
-var cards = [4, 13];
-Main();
+var cards = [];
 
 function Main()
 {
     MakeDeck();
-    for (const card in cards) {
-        if (cards.hasOwnProperty(card)) {
-            const element = cards[card];
-            html += "<p>" + element + "</p>";
+    //html += "<p>This card is: " + cards[0, 0] + "</p>";
+    for (const key in cards) {
+        if (cards.hasOwnProperty(key)) {
+            const card = cards[key];
+            var para = document.createElement('p');
+            para.innerHTML = "This card is: " + card;
+            document.body.appendChild(para);
         }
     }
-    document.body.innerHTML = html;
+    
+
+    // for (const card in cards) {
+    //     if (cards.hasOwnProperty(card)) {
+    //         const element = cards[card];
+            
+    //     }
+    // }
+    //document.body.innerHTML = html;
 }
+window.addEventListener('load', Main);
+
 
 function MakeDeck()
 {   
@@ -22,7 +34,7 @@ function MakeDeck()
         switch(suit)
         {
             case 0: suitname = "Spades"; break;
-            case 1: suitname = "Clovers"; break;
+            case 1: suitname = "Clubs"; break;
             case 2: suitname = "Hearts"; break;
             case 3: suitname = "Diamonds"; break;
             default: suitname = "Joker"; break;
@@ -38,7 +50,7 @@ function MakeDeck()
                 case 13: numdisplay = "King"; break;
                 default: numdisplay = number; break;
             }
-            cards [suit, number] = numdisplay + " of " + suitname;
+            cards.push(numdisplay + " of " + suitname);
         }
     }
 }
