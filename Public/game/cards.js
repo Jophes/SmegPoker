@@ -23,10 +23,30 @@ function PlayingCard(suit, num, own)
 }
 
 var cards = [];
+var Players = [];
+var Round;
 
 function Main()
 {
     MakeDeck();
+
+    for(var i = 0; i < 3; i++)
+    {
+        Players.push(new Player(i));
+    }
+    
+    for (const key in Players) {
+        if (Players.hasOwnProperty(key)) {
+            const element = Players[key];
+            PlayerCards(element);            
+        }
+    }
+    //PlayerCards(Players[0]);
+
+    Round = 1;
+    DealerCards();
+
+    CheckDeck();
 }
 
 function CheckDeck()
@@ -35,7 +55,7 @@ function CheckDeck()
         if (cards.hasOwnProperty(key)) {
             const card = cards[key];
             var para = document.createElement('p');
-            para.innerHTML = "This card is: " + card.fullname;
+            para.innerHTML = "This card is: " + card.fullname + " - Owner: " + card.Owner;
             document.body.appendChild(para);
         }
     }
@@ -50,12 +70,44 @@ function MakeDeck()
     }
 }
 
-function Player(cards)
+function PlayerCards(player)
 {
-    for(var i = 0; i < 2; i++)
+    while (player.PlayerHand < 2)
     {
-        Math.floor(Math.random() * 52);
+        var cardId = Math.floor(Math.random() * 52);
+        if (cards[cardId].Owner == "Deck")
+        {
+            //Player.PlayerCards[i] = cards[cardId];
+            cards[cardId].Owner = player.PlayerId;
+            player.PlayerHand++;
+        }
     }
+}
+
+function DealerCards()
+{
+    var dealerCards = 0;
+    if (Round == 1)
+    {
+        while (dealerCards < 3)
+        {
+            var cardId = Math.floor(Math.random() * 52);
+            if (cards[cardId].Owner == "Deck")
+            {
+                //Player.PlayerCards[i] = cards[cardId];
+                cards[cardId].Owner = "Dealer";
+                dealerCards++;
+            }
+        }
+    }
+}
+
+function Player(Id)
+{
+    this.SessionId;
+    this.PlayerHand = 0;
+    this.PlayerId = Id;
+    this.Currency = 100;
 }
 
 window.addEventListener('load', Main);

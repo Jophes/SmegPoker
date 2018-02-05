@@ -5,7 +5,10 @@ var app = express();
 var server = require('http').createServer(app);
 var io = require('socket.io')(server);
 const port = process.env.PORT || 8888;
+
 const validChars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const validEmailChars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
 const PAGE = { NONE: 0, LOGIN: 1, REGISTER: 2, GAME: 3 };
 var idCounter = 1;
 
@@ -90,26 +93,97 @@ app.use(express.static(__dirname + '/Public'));
 
 // Page socket.io handlers
 // - Login
-function LoginPage(client) {
+function LoginPage() {
+    var self = this;
     console.log('Login');
+
+    this.addListeners = function(client) {
+        self.cl = client;
+    }
+
+    this.removeListeners = function() {
+    }
 }
 
 // - Register
-function RegisterPage(client) {
+function RegisterPage() {
+    var self = this;
+
     console.log('Register');
+
+    this.register = function(data) {
+        //console.log('Client attempted to register');
+        //console.log(data);
+        var result = { valid: true };
+        const keys = ['email', 'username', 'password', 'confirmPassword', 'dob'];
+        const displayName = {'email': 'Email', 'username':'Username', 'password':'Password', 'confirmPassword':'Password Confirmation', 'dob':'Date of Birth'};
+        for (const key in keys) {
+            const resultKey = keys[key];
+            if (data.hasOwnProperty(resultKey)) {
+                const value = data[resultKey];
+                if (resultKey != 'dob') {
+                    if (value.length <= 3) {
+                        result[resultKey] = { valid: false, message: displayName[resultKey] + ' must be longer than 3 characters'};
+                        result.valid = false;
+                    }
+                    else if (resultKey == 'confirmPassword') {
+                        if (value != data.password) {
+                            result[resultKey] = { valid: false, message: displayName[resultKey] + ' is not the same as password'};
+                            result.valid = false;
+                        }
+                        else {
+                            result[resultKey] = { valid: true };
+                        }
+                    }
+                    else {
+                        result[resultKey] = { valid: true };
+                    }
+                }
+                else {
+                    if (value.length <= 0) {
+                        result[resultKey] = { valid: false, message: 'A ' + displayName[resultKey] + ' must be selected'};
+                        result.valid = false;
+                    }
+                    else {
+                        result[resultKey] = { valid: true };
+                    }
+                }
+            }
+            else {
+                result[resultKey] = { valid: false, message: displayName[resultKey] + ' is missing'};
+                result.valid = false;
+            }
+        }
+        self.cl.emit('register_result', result);
+    }
+
+    this.addListeners = function(client) {
+        self.cl = client;
+        self.cl.on('register', self.register);
+    }
+
+    this.removeListeners = function() {
+        self.cl.removeListener('register', self.register);
+    }
 }
 
 // - Game 
-function GamePage(client) {
-    console.log('Game');
+function GamePage() {
+    var self = this;
+    console.log('Game'); 
+
+    this.addListeners = function(client) {
+        self.cl = client;
+    }
+
+    this.removeListeners = function() {
+    }
 }
 
 const pages = { };
 pages[PAGE.LOGIN] = LoginPage;
 pages[PAGE.REGISTER] = RegisterPage;
 pages[PAGE.GAME] = GamePage;
-
-console.log();
 
 // Socket.IO
 io.on('connection', function(client) {
@@ -123,6 +197,7 @@ io.on('connection', function(client) {
     function pageSetup(data) {
         if (data.page && pages.hasOwnProperty(data.page)) {
             pageObj = new (pages[data.page])();
+            pageObj.addListeners(client);
         }
         client.removeListener('page_setup', pageSetup);
     }

@@ -22,10 +22,20 @@ function DOBList()
     return today;
 }
 
+function registerPressed() {
+    socket.emit('register', { email: document.getElementById('email').value, username: document.getElementById('name').value, password: document.getElementById('password').value, confirmPassword: document.getElementById('confirmPassword').value, dob: document.getElementById('dob').value });
+}
+
+function registerResult(data) {
+    console.log(data);
+}
+socket.on('register_result', registerResult);
+
 function load()
 {
     document.getElementById('dob').max = DOBList();
     socket.emit('page_setup', { page: PAGE.REGISTER });
+    document.getElementById('register').addEventListener('click', registerPressed);
 }
 window.addEventListener('load', load);
 
