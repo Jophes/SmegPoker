@@ -23,13 +23,25 @@ function PlayingCard(suit, num, own)
 }
 
 var cards = [];
+var tablecards = [];
 var Players = [];
 var Round;
+
+var Pot = 0;
+var Blind = 10;
+var Raise = false;
 
 function Main()
 {
     MakeDeck();
+    ShuffleDeck(cards);
+    StartGame();
 
+    CheckDeck();
+}
+
+function StartGame()
+{
     for(var i = 0; i < 3; i++)
     {
         Players.push(new Player(i));
@@ -41,12 +53,30 @@ function Main()
             PlayerCards(element);            
         }
     }
-    //PlayerCards(Players[0]);
 
     Round = 1;
     DealerCards();
+}
 
-    CheckDeck();
+function bet(player)
+{
+    if (Players[player].Currency - Blind > 0)
+    {
+        Players[player].Currency -= Blind;
+        Pot += Blind;
+    
+        console.log(Players[player].Currency);
+        console.log(Pot);
+    }
+    else
+    {
+        console.log("ALL IN!")
+    }
+}
+function raise(player)
+{
+    Blind *= 2;
+    bet(player);
 }
 
 function CheckDeck()
@@ -100,6 +130,32 @@ function DealerCards()
             }
         }
     }
+    if (Round == 2)
+    {
+        while (dealerCards < 4)
+        {
+            var cardId = Math.floor(Math.random() * 52);
+            if (cards[cardId].Owner == "Deck")
+            {
+                //Player.PlayerCards[i] = cards[cardId];
+                cards[cardId].Owner = "Dealer";
+                dealerCards++;
+            }
+        }
+    }
+    if (Round == 3)
+    {
+        while (dealerCards < 5)
+        {
+            var cardId = Math.floor(Math.random() * 52);
+            if (cards[cardId].Owner == "Deck")
+            {
+                //Player.PlayerCards[i] = cards[cardId];
+                cards[cardId].Owner = "Dealer";
+                dealerCards++;
+            }
+        }
+    }
 }
 
 function Player(Id)
@@ -109,5 +165,44 @@ function Player(Id)
     this.PlayerId = Id;
     this.Currency = 100;
 }
+
+function ShuffleDeck(cards)
+{
+    //Fisher-Yates (AKA Knuth) Shuffle
+    var index = cards.length;
+    var temp, rand;
+    while (index != 0)
+    {
+        rand = Math.floor(Math.random() * index);
+        index--;
+        temp = cards[index];
+        cards[index] = cards[rand];
+        cards[rand] = temp;
+    }
+    return cards;
+}
+
+function DetermineHandRank(phand)
+{
+    var handplustable = phand.concat(tablecards);
+    //Values are in ascending order, 0 is high card, 10 is royal flush
+        //Putting all the suits and corresponding numbers in two arrays
+        for (const key in handplustable)
+        {
+            if (handplustable.hasOwnProperty(key)){
+                const card = handplustable[index];
+                
+            }
+        }
+
+        //Royal Flush = 10
+        //if (handplustable)
+        //if (handplustable == {0, 13, 12, 11, 10}) return 10;
+
+        //Straight Flush = 9
+        //if (handplustable)
+}
+
+window.addEventListener('load', Main);
 
 window.addEventListener('load', Main);

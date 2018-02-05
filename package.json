@@ -1,11 +1,12 @@
 {
-    "name": "Smeg Head's Poker",
+    "name": "Smeg Heads Poker",
     "version": "0.0.0",
     "description": "Poker",
     "main": "index.js",
     "author": "Smeg Heads",
     "private": true,
     "dependencies": {
+        "bcrypt": "^1.0.3",
         "cookie-parser": "^1.4.3",
         "express": "^4.16.2",
         "mysql": "^2.15.0",
