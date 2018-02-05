@@ -1,11 +1,11 @@
 var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-var currentDate = function DOBList()
+function DOBList()
 {
     var today = new Date();
     var dd = today.getDate();
-    var mm = months[today.getMonth()];
-    var yyyy = today.getFullYear();
+    var mm = today.getMonth()+1;
+    var yyyy = today.getFullYear()-18;
     if (dd < 10)
     {
         dd = '0' + dd;
@@ -21,6 +21,6 @@ var currentDate = function DOBList()
 
 function load()
 {
-    document.getElementById("dob").min = currentDate();
+    document.getElementById('dob').max = DOBList();
 }
-document.addEventListener("load", load);
+window.addEventListener('load', load);

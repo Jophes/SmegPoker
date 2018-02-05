@@ -6,6 +6,7 @@ var server = require('http').createServer(app);
 var io = require('socket.io')(server);
 const port = process.env.PORT || 8888;
 const validChars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+var idCounter = 1;
 
 function GetTime() {
     var time = new Date();
@@ -89,7 +90,8 @@ app.use(express.static(__dirname + '/Public'));
 
 io.on('connection', function(client) {
     var connection = { id: idCounter, socket: client, address: client.request.connection };
-    function log (message) { console.log(connection.address.remoteAddress + ':' + connection.address.remotePort + ' id:' + connection.id + ' > ' + message); }
+    idCounter++;
+    function log (message) { console.log(GetTime() + ' [Socket.IO] ' + connection.address.remoteAddress + ':' + connection.address.remotePort + ' id:' + connection.id + ' > ' + message); }
 
     log('Client connected');
 });

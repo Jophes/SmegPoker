@@ -5,6 +5,12 @@ Main();
 function Main()
 {
     MakeDeck();
+    for (const card in cards) {
+        if (cards.hasOwnProperty(card)) {
+            const element = cards[card];
+            html += "<p>" + element + "</p>";
+        }
+    }
     document.body.innerHTML = html;
 }
 
@@ -26,13 +32,13 @@ function MakeDeck()
             var numdisplay;
             switch (number)
             {
+                case 0: numdisplay = "Ace"; break;
                 case 11: numdisplay = "Jack"; break;
                 case 12: numdisplay = "Queen"; break;
                 case 13: numdisplay = "King"; break;
                 default: numdisplay = number; break;
             }
             cards [suit, number] = numdisplay + " of " + suitname;
-            html += "<p>" + cards[suit, number] + "</p>";
         }
     }
 }
