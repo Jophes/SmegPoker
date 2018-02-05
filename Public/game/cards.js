@@ -5,6 +5,7 @@ Main();
 function Main()
 {
     MakeDeck();
+    document.body.innerHTML = html;
 }
 
 function MakeDeck()
@@ -33,6 +34,5 @@ function MakeDeck()
             cards [suit, number] = numdisplay + " of " + suitname;
             html += "<p>" + cards[suit, number] + "</p>";
         }
-        document.body.innerHTML = html;
     }
 }
