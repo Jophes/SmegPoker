@@ -1,0 +1,2 @@
+# SmegPoker
+Texas Holdem Poker
