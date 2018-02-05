@@ -2,7 +2,7 @@
 
 body {
     font-family: 'Open Sans', sans-serif;
-    background-image: url("Resources/PokerBackground.jpg");
+    background-image: url("Resources/poker-background.jpg");
     color: white;
 }
 
@@ -36,24 +36,25 @@ input {
     padding: 3% 0%;
 }
 
-button {
+.MenuButton {
     width: 100%;
     margin: 2%;
     padding: 3%;
     color: white;
     background-color: rgba(0,0,0,0);
     border: solid white 2px;
+    border-radius: 10px;
     font-family: 'Open Sans', sans-serif
 }
-button:focus {
+.MenuButton:focus {
     outline: 0;
 }
-button:hover {
+.MenuButton:hover {
     width: 102%;
     -webkit-transform: translate(-1%, 0%);
     transform: translate(-1%, 0%);
 }
-button:active {
+.MenuButton:active {
     width: 100%;
     -webkit-transform: translate(0%, 0%);
     transform: translate(0%, 0%);
@@ -64,9 +65,24 @@ button:active {
     
 }
 .PlayerButtons {
-    max-width: 100%;
+    width: 100%;
+    margin: 5px;
     color: white;
     background-color: rgba(0,0,0,0);
     border: solid white 2px;
-    font-family: 'Open Sans', sans-serif
+    font-family: 'Open Sans', sans-serif;
+    border-radius: 10px;
+}
+.PlayerButtons:focus {
+    outline: 0;
+}
+.PlayerButtons:hover {
+    width: 102%;
+    -webkit-transform: translate(-1%, 0%);
+    transform: translate(-1%, 0%);
+}
+.PlayerButtons:active {
+    width: 100%;
+    -webkit-transform: translate(0%, 0%);
+    transform: translate(0%, 0%);
 }

@@ -203,24 +203,55 @@ function ShuffleDeck(cards)
 function DetermineHandRank(phand)
 {
     var handplustable = phand.concat(tablecards);
-    //Values are in ascending order, 0 is high card, 10 is royal flush
+    var totalsuits = [], totalnums = [];
+    var ismatchingsuits, ismatchingnumbers;
+    var suitpointer;
+    var firstsuit = true;
+
+/*
+    Hand states:
+    - High Numbers 2-14
+*/
+
         //Putting all the suits and corresponding numbers in two arrays
         for (const key in handplustable)
         {
             if (handplustable.hasOwnProperty(key)){
-                const card = handplustable[index];
-                
+                const card = handplustable[key];
+                totalsuits.push(card.suitnum);
+                totalnums.push(card.Number);
             }
         }
+        totalsuits.sort();
+        totalnums.sort();
 
-        //Royal Flush = 10
-        //if (handplustable)
-        //if (handplustable == {0, 13, 12, 11, 10}) return 10;
+        //Check for suits - Royal Flush, Straight Flush or Flush
+        for (const key in totalsuits)
+        {
+            if (totalsuits.hasOwnProperty(key)){
+                const suit = totalsuits[key];
+                if (firstsuit == true) 
+                {
+                    suitpointer = suit.suitnum;
+                    ismatchingsuits = true;
+                    firstsuit = false;
+                }
+                else if (suitpointer != suit.suitnum) ismatchingsuits = false;
+            }
+        }
+        
+        //Check if any of the flushes are present
+        if (ismatchingsuits)
+        {
+            for (const key in totalnums){
+                if (totalnums.hasOwnProperty(key)){
+                    const num = totalnums[key];
+                    
+                }
+            }
+        }
 
         //Straight Flush = 9
         //if (handplustable)
 }
-
-window.addEventListener('load', Main);
-
 window.addEventListener('load', Main);
