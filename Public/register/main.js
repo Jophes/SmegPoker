@@ -28,6 +28,9 @@ function registerPressed() {
 
 function registerResult(data) {
     console.log(data);
+    if (data.valid) {
+        window.location.href = './game';
+    }
 }
 socket.on('register_result', registerResult);
 

@@ -209,8 +209,19 @@ function DetermineHandRank(phand)
     var firstsuit = true;
 
 /*
-    Hand states:
+    Hand Rank based on highest number on hand:
     - High Numbers 2-14
+    - Pair 15 - 27
+    - Two pair 28 - 40
+    - Three of a kind 41 - 53
+    - Straight 54 - 64
+    - Flush 65 - 69
+    - Full house 70 - 226
+    - Four of a kind 227 - 240
+    - Straight flush 241 - 251
+    - Royal 252 - 255
+
+    This excludes kickers, kickers will have to be calculated outside this function just to keep things relatively simple
 */
 
         //Putting all the suits and corresponding numbers in two arrays

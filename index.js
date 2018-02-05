@@ -18,7 +18,7 @@ const port = process.env.PORT || 8888;
 // ENUMS
 const PAGE = { NONE: 0, LOGIN: 1, REGISTER: 2, GAME: 3 };
 
-function GetTime() {
+function getTime() {
     var time = new Date();
     var secs = (time.getSeconds() + time.getMilliseconds() * 0.001).toFixed(3)
     var seconds = (secs.length < 6 ? '0' : '') + secs;
@@ -28,37 +28,41 @@ function GetTime() {
 }
 
 // Listen for connections
-function HandleServerStartup() {
-    console.log(GetTime() + ' [SERVER] Server listening on port %d', port);
+function handleServerStartup() {
+    console.log(getTime() + ' [SERVER] Server listening on port %d', port);
 }
 server.listen(port, HandleServerStartup);
 
 
 // -- Express routing --
-function AppLog(msg, req) {
-    console.log(GetTime() + ' [APP] ' + msg + ' {' + req.ip + ':' + req.client.remotePort + '}');
+function appLog(msg, req) {
+    console.log(getTime() + ' [APP] ' + msg + ' {' + req.ip + ':' + req.client.remotePort + '}');
 }
 
-function LogRequests(req, res, next) {
-    AppLog('Recieved ' + req.method + ' request for "' + req.url + '" from', req);
+function logRequests(req, res, next) {
+    appLog('Recieved ' + req.method + ' request for "' + req.url + '" from', req);
     next();
 } 
 
-function GenerateToken() { 
+function generateToken(uid, func) { 
     var invalid = true, tokenStr;
-    while (valid) {
+
+    
+
+    /*while (valid) {
         tokenStr = uuidv4();
+
         invalid = false;
-    }
+    }*/
     return tokenStr;
 }
 
 const renameTable = {'/' : '/index.html', '/login' : '/login/index.html', '/register' : '/register/index.html' , '/game' : '/game/index.html' };
-function HandlePageGetRequest(req, res, next) {
+function handlePageGetRequest(req, res, next) {
     if (req.method == 'GET' && renameTable.hasOwnProperty(req.url))
     {
         var reqUrl = renameTable[req.url];
-        //AppLog('Serving "' + reqUrl + '" to', req);
+        //appLog('Serving "' + reqUrl + '" to', req);
         var options = {
             root: __dirname + '/public/',
             dotfiles: 'deny',
@@ -78,16 +82,14 @@ function HandlePageGetRequest(req, res, next) {
     }
     else
     {
-        //AppLog('Recieved invalid request for ' + req.url + ' from', req);
+        //appLog('Recieved invalid request for ' + req.url + ' from', req);
         next();
     }
 }
 
-app.use(cookieParser());
-app.use(LogRequests);
-app.use(HandlePageGetRequest)
+app.use(logRequests);
+app.use(handlePageGetRequest)
 app.use(express.static(__dirname + '/Public'));
-
 
 // Page socket.io handlers
 // - Login
@@ -203,7 +205,7 @@ function RegisterPage() {
                         self.registerResult.valid = false;
                     }
                 }
-                if (self.registerResult.valid) {
+                if (self.registerResult.valid) { // HASH PASSWORD VALUE
                     con.query('INSERT INTO smeg_poker.users (name, email, password, dob) VALUES (?, ?, ?, ?);', [data.username, data.email, data.password, data.dob], function(err, rows, fields) {
                         if (err) {
                             self.registerResult.valid = false;
@@ -253,7 +255,7 @@ pages[PAGE.GAME] = GamePage;
 io.on('connection', function(client) {
     var connection = { socket: client, address: client.request.connection };
     var pageObj;
-    function log (message) { console.log(GetTime() + ' [Socket.IO] ' + connection.address.remoteAddress + ':' + connection.address.remotePort + ' id:' + connection.id + ' > ' + message); }
+    function log (message) { console.log(getTime() + ' [Socket.IO] ' + connection.address.remoteAddress + ':' + connection.address.remotePort + ' id:' + connection.id + ' > ' + message); }
 
     log('Client connected');
 

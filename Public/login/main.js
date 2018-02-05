@@ -8,7 +8,7 @@ function loginPressed() {
 function loginResult(data) {
     console.log(data);
     if (data.valid) {
-        window.location.href = 'http://localhost:8888/game';
+        window.location.href = './game';
     }
 }
 socket.on('login_result', loginResult);
