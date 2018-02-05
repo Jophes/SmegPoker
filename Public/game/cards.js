@@ -70,13 +70,27 @@ function bet(player)
     }
     else
     {
+        Pot += Players[player].Currency;
+        Players[player].Currency = 0;
         console.log("ALL IN!")
     }
 }
 function raise(player)
 {
-    Blind *= 2;
-    bet(player);
+    if (Players[player].Currency - Blind * 2 > 0)
+    {
+        Blind *= 2;
+        bet(player);
+    }
+    else 
+    {
+        bet(player);
+    }
+}
+
+function fold(player)
+{
+    Players[player].PlayerState = pState.FOLD;
 }
 
 function CheckDeck()
@@ -164,6 +178,7 @@ function Player(Id)
     this.PlayerHand = 0;
     this.PlayerId = Id;
     this.Currency = 100;
+    this.PlayerState = pState.STANDBY;
 }
 
 function ShuffleDeck(cards)

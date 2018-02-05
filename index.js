@@ -100,11 +100,59 @@ function LoginPage() {
     var self = this;
     console.log('Login');
 
+    this.login = function(data) {
+        self.loginResult = { valid: true };
+        const keys = ['email', 'password'];
+        const displayName = {'email': 'Email', 'password':'Password'};
+        for (const key in keys) {
+            const resultKey = keys[key];
+            if (data.hasOwnProperty(resultKey)) {
+                const value = data[resultKey];
+                if (value.length <= 3) {
+                    self.loginResult[resultKey] = { valid: false, message: displayName[resultKey] + ' must be longer than 3 characters'};
+                    self.loginResult.valid = false;
+                }
+                else {
+                    self.loginResult[resultKey] = { valid: true };
+                }
+            }
+            else {
+                self.loginResult[resultKey] = { valid: false, message: displayName[resultKey] + ' is missing'};
+                self.loginResult.valid = false;
+            }
+        }
+
+        // Check if email is in the database
+        if (self.loginResult.email.valid && self.loginResult.password.valid) {
+            con.query('SELECT password FROM smeg_poker.users WHERE email = ?;', [data.email], function(err, rows, fields) {
+                var password;
+                for (var i in rows) {
+                    password = rows[i].password;
+                    break;
+                }
+                if (password == null) {
+                    self.loginResult.email = { valid: false, message: displayName.email + ' does not exist'};
+                    self.loginResult.valid = false;
+                }
+                else if (password != data.password) { // REPLACE WITH HASH'd CHECK
+                    self.loginResult.password = { valid: false, message: displayName.password + ' is incorrect'};
+                    self.loginResult.valid = false;
+                }
+                self.cl.emit('login_result', self.loginResult);
+            });
+        }
+        else {
+            self.cl.emit('login_result', self.loginResult);
+        }
+    }
+
     this.addListeners = function(client) {
         self.cl = client;
+        self.cl.on('login', self.login);
     }
 
     this.removeListeners = function() {
+        self.cl.removeListener('login', self.login);
     }
 }
 
@@ -112,11 +160,7 @@ function LoginPage() {
 function RegisterPage() {
     var self = this;
 
-    console.log('Register');
-
     this.register = function(data) {
-        //console.log('Client attempted to register');
-        //console.log(data);
         self.registerResult = { valid: true };
         const keys = ['email', 'username', 'password', 'confirmPassword'];
         const displayName = {'email': 'Email', 'username':'Username', 'password':'Password', 'confirmPassword':'Password Confirmation', 'dob':'Date of Birth'};
@@ -154,16 +198,27 @@ function RegisterPage() {
         // Check if email or username exists in the database
         if (self.registerResult.username.valid && self.registerResult.email.valid) {
             con.query('SELECT name, email FROM smeg_poker.users WHERE name = ? or email = ?;', [data.username, data.email], function(err, rows, fields) {
-
                 for (var i in rows) {
                     if (rows[i].name == data.username) {
                         self.registerResult.username = { valid: false, message: displayName.username + ' is already taken' };
+                        self.registerResult.valid = false;
                     }
                     if (rows[i].email == data.email) {
                         self.registerResult.email = { valid: false, message: displayName.email + ' is already taken' };
+                        self.registerResult.valid = false;
                     }
                 }
-                self.cl.emit('register_result', self.registerResult);
+                if (self.registerResult.valid) {
+                    con.query('INSERT INTO smeg_poker.users (name, email, password, dob) VALUES (?, ?, ?, ?);', [data.username, data.email, data.password, data.dob], function(err, rows, fields) {
+                        if (err) {
+                            self.registerResult.valid = false;
+                        }
+                        self.cl.emit('register_result', self.registerResult);
+                    });
+                }
+                else {
+                    self.cl.emit('register_result', self.registerResult);
+                }
             });
         }
         else {
