@@ -1,8 +1,11 @@
 var express = require('express');
+var cookieParser = require('cookie-parser');
+//var bcrypt = require('bcrypt');
 var app = express();
 var server = require('http').createServer(app);
 var io = require('socket.io')(server);
 const port = process.env.PORT || 8888;
+const validChars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 function GetTime() {
     var time = new Date();
@@ -30,6 +33,14 @@ function LogRequests(req, res, next) {
     next();
 }
 
+/*function genSSID() {  // ADD CHECKS TO PREVENT DUPLICATE KEYS
+    var ssid = "";
+    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-";
+    for( var i=0; i < 85; i++ )
+        ssid += possible.charAt(Math.floor(Math.random() * possible.length));
+    return ssid;
+}*/
+
 const renameTable = {'/' : '/index.html', '/login' : '/login/index.html', '/register' : '/register/index.html' };
 function HandlePageGetRequest(req, res, next) {
     if (req.method == 'GET' && renameTable.hasOwnProperty(req.url))
@@ -44,6 +55,15 @@ function HandlePageGetRequest(req, res, next) {
                 'x-sent': true
             }
         };
+
+        /*var cookies = req.cookies;
+        // Check if SESSID cookie exists
+        if (cookies.SESSID === undefined || (cookies.SESSID && cookies.SESSID.length != 85))
+        {
+            // If it does not exist, create a new session cookie
+            var ssid = genSSID().toString();
+            res.cookie('SESSID', ssid, { httpOnly: false });
+        }*/
 
         res.sendFile(reqUrl, options, function (err) {
             if (err) {
@@ -60,7 +80,16 @@ function HandlePageGetRequest(req, res, next) {
     }
 }
 
+app.use(cookieParser());
 app.use(LogRequests);
 app.use(HandlePageGetRequest)
 app.use(express.static(__dirname + '/Public'));
 
+// Socket.IO
+
+io.on('connection', function(client) {
+    var connection = { id: idCounter, socket: client, address: client.request.connection };
+    function log (message) { console.log(connection.address.remoteAddress + ':' + connection.address.remotePort + ' id:' + connection.id + ' > ' + message); }
+
+    log('Client connected');
+});

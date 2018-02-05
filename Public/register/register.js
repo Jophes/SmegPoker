@@ -14,9 +14,13 @@ var currentDate = function DOBList()
     {
         mm = '0' + mm;
     }
-    today = dd+'-'+mm+'-'+yyyy;
+    today = yyyy+'-'+mm+'-'+dd;
     
-    return date;
+    return today;
 }
 
-document.getElementById(dob).addEventListener("load", DOBList).min = currentDate;
+function load()
+{
+    document.getElementById("dob").min = currentDate();
+}
+document.addEventListener("load", load);
