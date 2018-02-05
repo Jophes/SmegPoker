@@ -47,7 +47,25 @@ function logRequests(req, res, next) {
 function generateToken(uid, func) { 
     var invalid = true, tokenStr;
 
-    
+    const tokenCheck = function() {
+        tokenStr = uuidv4();
+        con.query('SELECT id FROM smeg_poker.users WHERE email = ?;', [data.email], function(err, rows, fields) {
+            var password;
+            for (var i in rows) {
+                password = rows[i].password;
+                break;
+            }
+            if (password == null) {
+                self.loginResult.email = { valid: false, message: displayName.email + ' does not exist'};
+                self.loginResult.valid = false;
+            }
+            else if (password != data.password) { // REPLACE WITH HASH'd CHECK
+                self.loginResult.password = { valid: false, message: displayName.password + ' is incorrect'};
+                self.loginResult.valid = false;
+            }
+            self.cl.emit('login_result', self.loginResult);
+        });
+    }
 
     /*while (valid) {
         tokenStr = uuidv4();
