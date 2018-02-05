@@ -31,7 +31,7 @@ function getTime() {
 function handleServerStartup() {
     console.log(getTime() + ' [SERVER] Server listening on port %d', port);
 }
-server.listen(port, HandleServerStartup);
+server.listen(port, handleServerStartup);
 
 
 // -- Express routing --
@@ -94,7 +94,7 @@ function handlePageGetRequest(req, res, next) {
             if (err) {
                 next(err);
             } else {
-                AppLog('Served "' + reqUrl + '" to', req);
+                appLog('Served "' + reqUrl + '" to', req);
             }
         });
     }
