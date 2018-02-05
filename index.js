@@ -9,9 +9,6 @@ var server = require('http').createServer(app);
 var io = require('socket.io')(server);
 const port = process.env.PORT || 8888;
 
-const validChars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-const validEmailChars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-
 const PAGE = { NONE: 0, LOGIN: 1, REGISTER: 2, GAME: 3 };
 var idCounter = 1;
 

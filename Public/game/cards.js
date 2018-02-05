@@ -98,9 +98,12 @@ function CheckDeck()
     for (const key in cards) {
         if (cards.hasOwnProperty(key)) {
             const card = cards[key];
-            var para = document.createElement('p');
-            para.innerHTML = "This card is: " + card.fullname + " - Owner: " + card.Owner;
-            document.body.appendChild(para);
+            if (card.Owner != "Deck")
+            {
+                var para = document.createElement('p');
+                para.innerHTML = "This card is: " + card.fullname + " - Owner: " + card.Owner;
+                document.body.appendChild(para);
+            }
         }
     }
 }
