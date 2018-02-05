@@ -2,9 +2,18 @@
 
 body {
     font-family: 'Open Sans', sans-serif;
+    background-image: url("Resources/PokerBackground.jpg");
+    color: white;
 }
 
 #MainMenu {
     text-align: center;
-    margin: auto 0px;
+    margin: auto auto;
+    position: absolute;
+    left: 40%;
+    top: 40%;
+    padding: 3%;
+    background-color: rgba(1,1,1,0.3);
+    border-radius: 5px;
+    border: solid white 2px;
 }

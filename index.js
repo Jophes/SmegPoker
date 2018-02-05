@@ -30,6 +30,37 @@ function LogRequests(req, res, next) {
     next();
 }
 
+const renameTable = {'/' : '/index.html', '/login' : '/login/index.html', '/register' : '/register/index.html' };
+function HandlePageGetRequest(req, res, next) {
+    if (req.method == 'GET' && renameTable.hasOwnProperty(req.url))
+    {
+        var reqUrl = renameTable[req.url];
+        //AppLog('Serving "' + reqUrl + '" to', req);
+        var options = {
+            root: __dirname + '/public/',
+            dotfiles: 'deny',
+            headers: {
+                'x-timestamp': Date.now(),
+                'x-sent': true
+            }
+        };
+
+        res.sendFile(reqUrl, options, function (err) {
+            if (err) {
+                next(err);
+            } else {
+                AppLog('Served "' + reqUrl + '" to', req);
+            }
+        });
+    }
+    else
+    {
+        //AppLog('Recieved invalid request for ' + req.url + ' from', req);
+        next();
+    }
+}
+
 app.use(LogRequests);
+app.use(HandlePageGetRequest)
 app.use(express.static(__dirname + '/Public'));
 
