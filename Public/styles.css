@@ -63,3 +63,6 @@ button:active {
     width: 50%;
     
 }
+.PlayerButtons {
+    max-width: 100%;
+}
