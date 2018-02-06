@@ -222,8 +222,6 @@ function DetermineHandRank(PlayerHandID)
     var firstofsuit = true;
     var flush = false;
 
-
-
     for (const key in totalhand)
     {
         if (totalhand.hasOwnProperty(key)){
@@ -249,39 +247,51 @@ function DetermineHandRank(PlayerHandID)
         }
     }
 
-    var samecards = 0;
+    var samecards = [], index = 0;
     for (const key in totalhand){
+        if (key >= totalhand.length) break;
         if (cards.hasOwnProperty(key)){
             const card = totalhand[key];
-            for (var i = 0; i < (totalhand.length-1); i++)
+            if (card.Number == totalhand[key+1].Number)
             {
-                
+                samecards[index] += 1;
             }
-            var newCard = new PlayingCard();
-            SearchForCard(card, totalhand);
-            /*
-            try
+            else if (samecards[index] != null)
             {
-                if (card == totalhand[key+1]) 
-                {
-                    try 
-                    {
-                        if(card == totalhand[i - 1] && card == totalhand[i + 1])
-                        {
-                            samecards++;
-                        }
-                    } 
-                    catch (err) { }
-                    if (samecards == 0) samecards++;
-                }
+                index++;
             }
-            catch(err){}*/
         }
     }
 
+    if (samecards.length != 0)
+    {
+        var pairs = 0; three = false; four = false;
+        for (var i = 0; i < samecards.length; i++)
+        {
+            switch(samecards[i])
+            {
+                case 1: pairs++; break;
+                case 2: break;
+                default: break;
+            }
+        }        
+    }
+
     var straight = 0;
+    var royalFlush = true;
+    //Suit indexes - Spades: 0, Clubs: 1, Hearts: 2, Diamonds: 3
+    var suitFlush = [];
+    
     for (const key in totalhand) {
-        if (cards.hasOwnProperty(key)) {
+        if (totalhand.hasOwnProperty(key)) {
+            const card = totalhand[key];
+            suitFlush[card.suitnum]++;
+        }
+    }
+    
+
+    for (const key in totalhand) {
+        if (totalhand.hasOwnProperty(key)) {
             const card = totalhand[key];
             if (card.num + 1 == totalhand[key+1].num)
             {
@@ -290,120 +300,27 @@ function DetermineHandRank(PlayerHandID)
         }
     }
     if (straight == 5)
+    {
         if (handvalue < handStrength.STRAIGHT)
         {
             handvalue = handStrength.STRAIGHT;
-            if (flush)
-                handvalue = handStrength.STRAIGHTFLUSH;
-        }
-
-    //Hand Rank based on highest number on hand: High card 7, Royal flush = 10
-
-    /*
-    //Putting all the suits and corresponding numbers in two arrays
-    for (const key in handplustable)
-    {
-        if (handplustable.hasOwnProperty(key)){
-            const card = handplustable[key];
-            totalsuits.push(card.suitnum);
-            totalnums.push(card.Number);
         }
     }
-    totalsuits.sort();
-    totalnums.sort();
-
-    console.log(totalsuits);
-    console.log(totalnums);
-    */
-    /*
-    //Check for suits - Royal Flush, Straight Flush or Flush
-    for (const key in totalsuits)
+    if (flush && handStrength == handStrength.STRAIGHT)
     {
-        if (totalsuits.hasOwnProperty(key)){
-            const suit = totalsuits[key];
-            if (firstofsuit == true) 
-            {
-                suitpointer = suit.suitnum;
-                firstofsuit = false;
-            }
-            
-            if (suitpointer == suit.suitnum)
-            {
-                suitcounter++;
-                if (suitcounter >= 5) ismatchingsuits = true;
-            }
-            else
-            {
-                suitcounter = 0;
-                suitpointer = suit.suitnum;
-                firstofsuit = true;
-            }
-        }
-    }
-
-    
-    //Check if any of the flushes are present
-    if (ismatchingsuits)
-    {
-        //Royal Flush
-        var isRoyal = false, isStraightFlush = false, isFlush = false;
-        var cardcount = 0;
-        for (var i = 0; i < totalnums.length; i++) 
-        {
-            if (totalnums[i] = 1)
-            cardcount++;
-            if (totalnums[i] != (14-i)) cardcount = 0;
-            if (cardcount == 5) isRoyal = true;
-        }
-
-        //Straight Flush or Flush
-        if (!isRoyal) 
-        {
-            cardcount = 0;
-            for (var i = 0; i < (totalnums.length - 1); i++)
-            {
-                if (totalnums[i] = 1)
-                if (totalnums[i+1] - totalnums[i] != 1)
+        handvalue = handStrength.STRAIGHTFLUSH;
+        for (const key in totalhand) {
+            if (totalhand.hasOwnProperty(key)) {
+                const card = totalhand[key];
+                if (card.num > 1 || card.num < 10)
                 {
-                    cardcount = 0;
+                    royalFlush = false;
+                    break;
                 }
             }
         }
-        
-        if (isRoyal) return handvalue += 10;
-        else if (isStraightFlush) return handvalue += 9;
-        else if (isFlush) return handvalue += 5;
+        if (royalFlush) handvalue = handStrength.ROYAL;
     }
-    
-    else
-    {
-        var paired = 0, three = false, isFour = false, isStraight = false;
-        //High Num
-        handvalue += 1;
-        //Count paired
-        for (const key in totalnums)
-        {
-            if (totalnums.hasOwnProperty(key)){
-                const card = totalnums[key];
-                if (key != totalnums.length)
-                {
-                    if (card == totalnums[key + 1]) paired++;
-                }
-            }
-        }
-
-        //Check for Straight
-        for (const key in totalnums)
-        {
-            if (totalnums.hasOwnProperty(key)){
-                const card = totalnums[key];
-                if (key != totalnums.length)
-                {
-                    if (card == totalnums[key + 1]) paired++;
-                }
-            }
-        }
-    }*/
 }
 
 function SearchForCard(_card, PTCards)

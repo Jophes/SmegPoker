@@ -218,6 +218,10 @@ function LoginPage() {
         self.cl.log('Login page listeners ready');
         self.cl.on('login', self.login);
     }
+    
+    this.authed = function(uid) {
+        self.user_id = uid;
+    }
 
     this.removeListeners = function() {
         self.cl.removeListener('login', self.login);
@@ -344,6 +348,10 @@ function RegisterPage() {
         self.cl = client;
         self.cl.log('Register page listeners ready');
         self.cl.on('register', self.register);
+    }
+    
+    this.authed = function(uid) {
+        self.user_id = uid;
     }
 
     this.removeListeners = function() {
@@ -538,6 +546,10 @@ function BrowsePage() {
         self.cl.on('createRoom', self.createRoom);
         self.cl.on('joinRoom', self.joinRoom);
     }
+    
+    this.authed = function(uid) {
+        self.user_id = uid;
+    }
 
     this.removeListeners = function() {
         self.cl.removeListener('getRooms', self.getRooms);
@@ -548,7 +560,6 @@ function BrowsePage() {
         roomsCheck();
     }
 }
-var users = {};
 
 // - Lobby
 function LobbyPage() {
@@ -567,6 +578,10 @@ function LobbyPage() {
         self.cl.log('Lobby page listeners ready');
     }
 
+    this.authed = function(uid) {
+        self.user_id = uid;
+    }
+
     this.removeListeners = function() {
     }
 
@@ -577,11 +592,10 @@ function LobbyPage() {
 // POKER GAME STUFF
 
 // Object type
-function PlayingCard(suit, num, own) {
+function PlayingCard(suit, num) {
     var self = this;
     this.suitNumber = suit;
     this.number = num;
-    this.owner = own;
     switch(suit) {
         case 0: this.suitName = "Spades"; break;
         case 1: this.suitName = "Clubs"; break;
@@ -602,10 +616,11 @@ function PlayingCard(suit, num, own) {
     }
 }
 
-function Player(uid) {
+function Player(player_id) {
     var self = this;
     this.hand = [];
-    this.id = uid;
+    this.uid = null;
+    this.pid = player_id;
     this.name = null;
     this.money = 100;
     this.state = pState.STANDBY;
@@ -617,14 +632,26 @@ function Player(uid) {
         data.hand = self.hand;
         return data;
     }
-    this.bet = function() {
-        
+    this.bet = function(blind) {
+        var amountBet = 0;
+        if (self.money > 0) {
+            if (self.money - blind > 0) {
+                amountBet = blind;
+            }
+            else {
+                amountBet = self.money;                
+            }
+            self.money -= amountBet;
+        }
+        return amountBet;
     }
-    this.raise = function() {
-
+    this.raise = function(blind) {
+        if (self.money - blind * 2 > 0) {
+            blind *= 2;
+        }
     }
     this.fold = function() {
-
+        self.state = pState.FOLD;
     }
 }
 
@@ -641,9 +668,10 @@ function GameInstance() {
 
     // Make deck
     this.makeDeck = function() {   
+        self.cards = [];
         for (var suit = 0; suit < 4; suit++) { 
             for (var number = 1; number < 14; number++){
-                cards.push(new PlayingCard(suit, number, "Deck"));
+                self.cards.push(new PlayingCard(suit, number));
             } 
         }
     }
@@ -652,41 +680,64 @@ function GameInstance() {
         var hand = [];
         for (let i = 0; i < handCount; i++) {
             const cardId = Math.floor(Math.random() * self.cards.length);
-            hand.push(cards[cardId]);
-            cards.splice(cardId,1);
+            hand.push(self.cards[cardId]);
+            self.cards.splice(cardId,1);
         }
         return hand;
     }
 
-    this.startGame = function() {
+    this.setupGame = function() {
         for (let i = 0; i < 5; i++) {
-            self.players.push(new Player(null));
+            self.players.push(new Player(i));
         }
+        self.startGame();
+    }
+
+    this.startGame = function() {
+        self.makeDeck();
         for (const key in self.players) {
             if (self.players.hasOwnProperty(key)) {
                 self.players[key].hand = self.getHand(2);
             }
         }
-        self.dealer = self.getHands(5);
+        self.dealer = self.getHand(5);
     }
 }
 
 var games = [new GameInstance()];
+games[0].setupGame();
+var users = {};
 
 // - Game -
 function GamePage() {
     var self = this;
+    self.gid = 0;
 
     this.addListeners = function(client) {
         self.cl = client;
         self.cl.log('Game page listeners ready');
     }
 
+    this.authed = function(uid) {
+        self.user_id = uid;
+        for (const i in games[self.gid].players) {
+            if (games[self.gid].players.hasOwnProperty(i)) {
+                if (games[self.gid].players[i].uid == null) {
+                    self.pid = games[self.gid].players[i].pid;
+                    games[self.gid].players[self.pid].uid = self.user_id;
+                    break;
+                }
+            }
+        }
+        self.cl.log('User authed, adding to game. uid: ' + self.user_id + ' pid: ' + self.pid);
+    }
+
     this.removeListeners = function() {
     }
 
     this.disconnect = function() {
-        
+        games[self.gid].players[self.pid].uid = null;
+        self.cl.log('User disconnected, removed from game');
     }
 }
 
@@ -714,7 +765,7 @@ io.on('connection', function(client) {
                 token_result.user_id = uid;
                 client.log('Token check determined user is uid: ' + uid);
                 if (pageObj != null) {
-                    pageObj.user_id = connection.user_id;
+                    pageObj.authed(connection.user_id);
                     users[uid] = { handle: pageObj };
                 }
             }
@@ -734,7 +785,8 @@ io.on('connection', function(client) {
                 }
             });
             if (connection.user_id != null) {
-                pageObj.user_id = connection.user_id;
+                pageObj.authed(connection.user_id);
+                users[connection.user_id] = { handle: pageObj };
             }
         }
         client.removeListener('page_setup', pageSetup);
