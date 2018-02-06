@@ -1,3 +1,5 @@
+var token;
+var redirect = false;
 if (io) {
     function getCookie(cname) {
         var name = cname + "=";
@@ -16,21 +18,24 @@ if (io) {
 
     var socket = io();
 
-    const token = getCookie('token')
+    token = getCookie('token');
+
     if (token == '') {
         console.log('No token found');
     }
     else {
-        console.log(token);
         socket.on('token_result', function(data) {
             if (data.valid) {
                 console.log('Token valid! Uid: ' + data.user_id);
-                window.location.href = './browse';
+                if (redirect) {
+                    window.location.href = './browse';
+                }
             }
             else {
                 console.log('Token invalid.');
             }
         });
-        socket.emit('token_check', { token: token });
     }
+    
+    socket.emit('token_check', { token: token });
 }

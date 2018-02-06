@@ -1,3 +1,5 @@
+redirect = true;
+
 function loginPressed() {
     socket.emit('login', { email: document.getElementById('email').value, password: document.getElementById('password').value });
 }

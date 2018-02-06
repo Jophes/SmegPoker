@@ -13,19 +13,19 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="/token_check.js"></script>
     <script src="/enums.js"></script>
-    <script src="/browse/main.js"></script>
+    <script src="/lobby/main.js"></script>
 </head>
 <body>
     <div class="rooms">
-        <h1>Rooms</h1>
+        <h1>Lobby - ROOM NAME</h1>
         <div class="list">
             <ul id="roomList">
+                <li>PLAYER NAME 1</li>
+                <li>PLAYER NAME 2</li>
+                <li>PLAYER NAME 3</li>
             </ul>
         </div>
-        <div class="create">
-            <input id="roomName" type="text" placeholder="Room Name">
-            <button id="create">Create</button>
-        </div>
+        <button id="start">Start</button>
     </div>
 </body>
 </html>
