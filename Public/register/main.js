@@ -1,6 +1,3 @@
-
-var socket = io();
-
 var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 function DOBList()
@@ -29,7 +26,12 @@ function registerPressed() {
 function registerResult(data) {
     console.log(data);
     if (data.valid) {
-        window.location.href = './game';
+        if (data.token != null) {
+            var d = new Date();
+            d.setTime(d.getTime() + 5529600000);
+            document.cookie = 'token=' + data.token + ';expires=' + d.toUTCString() + ';path=/';
+        }
+        window.location.href = './browse';
     }
 }
 socket.on('register_result', registerResult);

@@ -6,17 +6,17 @@ const server = require('http').createServer(app);
 
 const uuidv4 = require('uuid/v4');
 
-//var bcrypt = require('bcrypt');
+var bcrypt = require('bcrypt');
 const saltRounds = 10;
 
 const mysql = require('mysql');
-const con = mysql.createConnection({ host: "cheeseserver1", user: "student", password: "student", database: "smeg_poker" });
+const con = mysql.createConnection({ host: "192.168.0.24", user: "student", password: "student", database: "smeg_poker" });
 
 var io = require('socket.io')(server);
 const port = process.env.PORT || 8888;
 
 // ENUMS
-const PAGE = { NONE: 0, LOGIN: 1, REGISTER: 2, GAME: 3 };
+const PAGE = { NONE: 0, LOGIN: 1, REGISTER: 2, BROWSE: 3, GAME: 4 };
 
 function getTime() {
     var time = new Date();
@@ -44,38 +44,61 @@ function logRequests(req, res, next) {
     next();
 } 
 
-function generateToken(uid, func) { 
+function generateUserToken(uid, func) { 
     var invalid = true, tokenStr;
-
     const tokenCheck = function() {
         tokenStr = uuidv4();
-        con.query('SELECT id FROM smeg_poker.users WHERE email = ?;', [data.email], function(err, rows, fields) {
-            var password;
-            for (var i in rows) {
-                password = rows[i].password;
-                break;
+        con.query('SELECT token FROM smeg_poker.tokens WHERE token = ?;', [tokenStr], function(err, rows, fields) {
+            if (err) {
+                console.log('Failed to search database for generated token!');
+                console.log(err);
             }
-            if (password == null) {
-                self.loginResult.email = { valid: false, message: displayName.email + ' does not exist'};
-                self.loginResult.valid = false;
+            else {
+                var exists = false;
+                for (const i in rows) {
+                    exists = true;
+                    break;
+                }
+                if (exists) {
+                    //console.log('Found repeated token, trying again');
+                    tokenCheck();
+                }
+                else {
+                    //console.log('Found unique token: ' + tokenStr);
+                    con.query('INSERT INTO smeg_poker.tokens (user_id, token) VALUES (?, ?);', [uid, tokenStr], function(err, rows, fields) {
+                        if (err) {
+                            console.log('Failed to add token!');
+                            console.log(err);
+                        }
+                        else if (func != null) {
+                            func(tokenStr);
+                        }
+                    });
+                }
             }
-            else if (password != data.password) { // REPLACE WITH HASH'd CHECK
-                self.loginResult.password = { valid: false, message: displayName.password + ' is incorrect'};
-                self.loginResult.valid = false;
-            }
-            self.cl.emit('login_result', self.loginResult);
         });
     }
-
-    /*while (valid) {
-        tokenStr = uuidv4();
-
-        invalid = false;
-    }*/
-    return tokenStr;
+    tokenCheck();
 }
 
-const renameTable = {'/' : '/index.html', '/login' : '/login/index.html', '/register' : '/register/index.html' , '/game' : '/game/index.html' };
+function validateUserToken(token, func) {
+    con.query('SELECT user_id FROM smeg_poker.tokens WHERE token = ?;', [token], function(err, rows, fields) {
+        if (err) {
+            console.log('Failed to search database for user token!');
+            console.log(err);
+        }
+        else {
+            var user_id;
+            for (const i in rows) {
+                user_id = rows[i].user_id;
+                break;
+            }
+            func(user_id);
+        }
+    });
+}
+
+const renameTable = {'/' : '/index.html', '/login' : '/login/index.html', '/register' : '/register/index.html' , '/browse' : '/browse/index.html' , '/game' : '/game/index.html' };
 function handlePageGetRequest(req, res, next) {
     if (req.method == 'GET' && renameTable.hasOwnProperty(req.url))
     {
@@ -107,13 +130,12 @@ function handlePageGetRequest(req, res, next) {
 
 app.use(logRequests);
 app.use(handlePageGetRequest)
-app.use(express.static(__dirname + '/Public'));
+app.use(express.static(__dirname + '/public'));
 
 // Page socket.io handlers
 // - Login
 function LoginPage() {
     var self = this;
-    console.log('Login');
 
     this.login = function(data) {
         self.loginResult = { valid: true };
@@ -139,21 +161,50 @@ function LoginPage() {
 
         // Check if email is in the database
         if (self.loginResult.email.valid && self.loginResult.password.valid) {
-            con.query('SELECT password FROM smeg_poker.users WHERE email = ?;', [data.email], function(err, rows, fields) {
-                var password;
-                for (var i in rows) {
-                    password = rows[i].password;
-                    break;
-                }
-                if (password == null) {
-                    self.loginResult.email = { valid: false, message: displayName.email + ' does not exist'};
+            con.query('SELECT id, password FROM smeg_poker.users WHERE email = ?;', [data.email], function(err, rows, fields) {
+                if (err) {
+                    self.cl.log('Failed to search for users with given email!');
+                    console.log(err);
                     self.loginResult.valid = false;
                 }
-                else if (password != data.password) { // REPLACE WITH HASH'd CHECK
-                    self.loginResult.password = { valid: false, message: displayName.password + ' is incorrect'};
-                    self.loginResult.valid = false;
+                else {
+                    var password, uid;
+                    for (var i in rows) {
+                        uid = rows[i].id;
+                        password = rows[i].password;
+                        break;
+                    }
+                    
+                    if (password == null || uid == null) {
+                        self.loginResult.email = { valid: false, message: displayName.email + ' does not exist'};
+                        self.loginResult.valid = false;
+                    }
+                    else /*if (password != data.password)*/ { // REPLACE WITH HASH'd CHECK
+                        bcrypt.compare(data.password, rows[i].password, function(err, res) {
+                            if (err) {
+                                self.cl.log('Failed to compare hashed password to login password!');
+                                console.log(err);
+                                self.loginResult.valid = false;
+                            }
+                            else {
+                                if (!res) {
+                                    self.loginResult.password = { valid: false, message: displayName.password + ' is incorrect'};
+                                    self.loginResult.valid = false;
+                                }
+                                if (self.loginResult.valid) {
+                                    generateUserToken(uid, function (token) {
+                                        console.log('Unique token generated for uid('+uid+') - ' + token);
+                                        self.loginResult.token = token;
+                                        self.cl.emit('login_result', self.loginResult);
+                                    });
+                                }
+                                else {
+                                    self.cl.emit('login_result', self.loginResult);
+                                }
+                            }
+                        });
+                    }
                 }
-                self.cl.emit('login_result', self.loginResult);
             });
         }
         else {
@@ -163,6 +214,7 @@ function LoginPage() {
 
     this.addListeners = function(client) {
         self.cl = client;
+        self.cl.log('Login page listeners ready');
         self.cl.on('login', self.login);
     }
 
@@ -213,26 +265,68 @@ function RegisterPage() {
         // Check if email or username exists in the database
         if (self.registerResult.username.valid && self.registerResult.email.valid) {
             con.query('SELECT name, email FROM smeg_poker.users WHERE name = ? or email = ?;', [data.username, data.email], function(err, rows, fields) {
-                for (var i in rows) {
-                    if (rows[i].name == data.username) {
-                        self.registerResult.username = { valid: false, message: displayName.username + ' is already taken' };
-                        self.registerResult.valid = false;
-                    }
-                    if (rows[i].email == data.email) {
-                        self.registerResult.email = { valid: false, message: displayName.email + ' is already taken' };
-                        self.registerResult.valid = false;
-                    }
-                }
-                if (self.registerResult.valid) { // HASH PASSWORD VALUE
-                    con.query('INSERT INTO smeg_poker.users (name, email, password, dob) VALUES (?, ?, ?, ?);', [data.username, data.email, data.password, data.dob], function(err, rows, fields) {
-                        if (err) {
-                            self.registerResult.valid = false;
-                        }
-                        self.cl.emit('register_result', self.registerResult);
-                    });
+                if (err) {
+                    self.cl.log('Email & Username check failed! Error occured!');
+                    console.log(err);
                 }
                 else {
-                    self.cl.emit('register_result', self.registerResult);
+                    for (var i in rows) {
+                        if (rows[i].name == data.username) {
+                            self.registerResult.username = { valid: false, message: displayName.username + ' is already taken' };
+                            self.registerResult.valid = false;
+                        }
+                        if (rows[i].email == data.email) {
+                            self.registerResult.email = { valid: false, message: displayName.email + ' is already taken' };
+                            self.registerResult.valid = false;
+                        }
+                    }
+                    if (self.registerResult.valid) { // HASH PASSWORD VALUE
+                        bcrypt.hash(data.password, saltRounds, function(err, hash) {
+                            if (err) {
+                                self.cl.log('Password hashing failed!');
+                                console.log(err);
+                                self.registerResult.valid = false;
+                            }
+                            else {
+                                con.query('INSERT INTO smeg_poker.users (name, email, password, dob) VALUES (?, ?, ?, ?);', [data.username, data.email, hash, data.dob], function(err, rows, fields) {
+                                    if (err) {
+                                        self.cl.log('User insert failed!');
+                                        console.log(err);
+                                        self.registerResult.valid = false;
+                                        self.cl.emit('register_result', self.registerResult);
+                                    }
+                                    else {
+                                        con.query('SELECT id FROM smeg_poker.users WHERE email = ?;', [data.email], function(err, rows, fields) {
+                                            if (err) {
+                                                self.cl.log('Failed to search for users with given email!');
+                                                console.log(err);
+                                            }
+                                            else {
+                                                var uid;
+                                                for (var i in rows) {
+                                                    uid = rows[i].id;
+                                                    break;
+                                                }
+                                                if (uid != null) {
+                                                    generateUserToken(uid, function (token) {
+                                                        console.log('Unique token generated for uid('+uid+') - ' + token);
+                                                        self.registerResult.token = token;
+                                                        self.cl.emit('register_result', self.registerResult);
+                                                    });
+                                                }
+                                                else {
+                                                    self.cl.emit('register_result', self.registerResult);
+                                                }
+                                            }
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    }
+                    else {
+                        self.cl.emit('register_result', self.registerResult);
+                    }
                 }
             });
         }
@@ -243,6 +337,7 @@ function RegisterPage() {
 
     this.addListeners = function(client) {
         self.cl = client;
+        self.cl.log('Register page listeners ready');
         self.cl.on('register', self.register);
     }
 
@@ -251,13 +346,26 @@ function RegisterPage() {
     }
 }
 
-// - Game 
-function GamePage() {
+// - Browser
+function BrowsePage() {
     var self = this;
-    console.log('Game'); 
 
     this.addListeners = function(client) {
         self.cl = client;
+        self.cl.log('Browser page listeners ready');
+    }
+
+    this.removeListeners = function() {
+    }
+}
+
+// - Game 
+function GamePage() {
+    var self = this;
+
+    this.addListeners = function(client) {
+        self.cl = client;
+        self.cl.log('Game page listeners ready');
     }
 
     this.removeListeners = function() {
@@ -267,15 +375,30 @@ function GamePage() {
 const pages = { };
 pages[PAGE.LOGIN] = LoginPage;
 pages[PAGE.REGISTER] = RegisterPage;
+pages[PAGE.BROWSE] = BrowsePage;
 pages[PAGE.GAME] = GamePage;
 
 // Socket.IO
 io.on('connection', function(client) {
-    var connection = { socket: client, address: client.request.connection };
+    var connection = { user_id: null, socket: client, address: client.request.connection };
     var pageObj;
-    function log (message) { console.log(getTime() + ' [Socket.IO] ' + connection.address.remoteAddress + ':' + connection.address.remotePort + ' id:' + connection.id + ' > ' + message); }
+    client.log = function(message) { console.log(getTime() + ' [Socket.IO] ' + connection.address.remoteAddress + ':' + connection.address.remotePort + /*' id:' + connection.id +*/ ' > ' + message); }
 
-    log('Client connected');
+    client.log('Client connected');
+
+    function tokenCheck(data) {
+        validateUserToken(data.token, function(uid) {
+            var token_result = { valid: false };
+            if (uid != null) {
+                connection.user_id = uid;
+                token_result.valid = true;
+                token_result.user_id = uid;
+                client.log('Token check determined user is uid: ' + uid);
+            }
+            client.emit('token_result', token_result);
+        });
+    }
+    client.on('token_check', tokenCheck);
 
     function pageSetup(data) {
         if (data.page && pages.hasOwnProperty(data.page)) {
