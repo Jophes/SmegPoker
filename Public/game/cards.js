@@ -13,7 +13,7 @@ function PlayingCard(suit, num, own)
     }
     switch (num)
     {
-        case 0: this.numdisplay = "Ace"; break;
+        case 1: this.numdisplay = "Ace"; break;
         case 11: this.numdisplay = "Jack"; break;
         case 12: this.numdisplay = "Queen"; break;
         case 13: this.numdisplay = "King"; break;
@@ -34,7 +34,7 @@ var Raise = false;
 function Main()
 {
     MakeDeck();
-    ShuffleDeck(cards);
+    //ShuffleDeck(cards);
     StartGame();
 
     CheckDeck();
@@ -54,7 +54,7 @@ function StartGame()
         }
     }
 
-    Round = 1;
+    Round = 3;
     DealerCards();
 }
 
@@ -64,6 +64,7 @@ function bet(player)
     {
         Players[player].Currency -= Blind;
         Pot += Blind;
+        var curr = document.getElementById('CurrentWallet').innerHTML = Players[player].Currency;
     
         console.log(Players[player].Currency);
         console.log(Pot);
@@ -72,6 +73,7 @@ function bet(player)
     {
         Pot += Players[player].Currency;
         Players[player].Currency = 0;
+        var curr = document.getElementById('CurrentWallet').innerHTML = Players[player].Currency;
         console.log("ALL IN!")
     }
 }
@@ -84,6 +86,7 @@ function raise(player)
     }
     else 
     {
+        Blind += Players[player].Currency;
         bet(player);
     }
 }
@@ -111,7 +114,7 @@ function CheckDeck()
 function MakeDeck()
 {   
     for (var suit = 0; suit < 4; suit++){ 
-        for (var number = 0; number < 14; number++){
+        for (var number = 1; number < 14; number++){
             cards.push(new PlayingCard(suit, number, "Deck"));
         }
     }
@@ -134,44 +137,44 @@ function PlayerCards(player)
 function DealerCards()
 {
     var dealerCards = 0;
-    if (Round == 1)
+    switch (Round)
     {
-        while (dealerCards < 3)
-        {
-            var cardId = Math.floor(Math.random() * 52);
-            if (cards[cardId].Owner == "Deck")
+        case 1: 
+            while (dealerCards < 3)
             {
-                //Player.PlayerCards[i] = cards[cardId];
-                cards[cardId].Owner = "Dealer";
-                dealerCards++;
+                var cardId = Math.floor(Math.random() * 52);
+                if (cards[cardId].Owner == "Deck")
+                {
+                    //Player.PlayerCards[i] = cards[cardId];
+                    cards[cardId].Owner = "Dealer";
+                    dealerCards++;
+                }
             }
-        }
-    }
-    if (Round == 2)
-    {
-        while (dealerCards < 4)
-        {
-            var cardId = Math.floor(Math.random() * 52);
-            if (cards[cardId].Owner == "Deck")
+            break;
+        case 2:
+            while (dealerCards < 4)
             {
-                //Player.PlayerCards[i] = cards[cardId];
-                cards[cardId].Owner = "Dealer";
-                dealerCards++;
+                var cardId = Math.floor(Math.random() * 52);
+                if (cards[cardId].Owner == "Deck")
+                {
+                    //Player.PlayerCards[i] = cards[cardId];
+                    cards[cardId].Owner = "Dealer";
+                    dealerCards++;
+                }
             }
-        }
-    }
-    if (Round == 3)
-    {
-        while (dealerCards < 5)
-        {
-            var cardId = Math.floor(Math.random() * 52);
-            if (cards[cardId].Owner == "Deck")
+            break;
+        case 3:
+            while (dealerCards < 5)
             {
-                //Player.PlayerCards[i] = cards[cardId];
-                cards[cardId].Owner = "Dealer";
-                dealerCards++;
+                var cardId = Math.floor(Math.random() * 52);
+                if (cards[cardId].Owner == "Deck")
+                {
+                    //Player.PlayerCards[i] = cards[cardId];
+                    cards[cardId].Owner = "Dealer";
+                    dealerCards++;
+                }
             }
-        }
+            break;
     }
 }
 
@@ -182,6 +185,7 @@ function Player(Id)
     this.PlayerId = Id;
     this.Currency = 100;
     this.PlayerState = pState.STANDBY;
+    var curr = document.getElementById('CurrentWallet').innerHTML = this.Currency;
 }
 
 function ShuffleDeck(cards)
@@ -200,69 +204,178 @@ function ShuffleDeck(cards)
     return cards;
 }
 
-function DetermineHandRank(phand)
+function DetermineHandRank(PlayerHandID)
 {
-    var handplustable = phand.concat(tablecards);
+    var totalhand = [];
+    for (const key in cards) {
+        if (cards.hasOwnProperty(key)) {
+            const card = cards[key];
+            if (card.Owner == PlayerHandID) totalhand.push(card);
+            if (card.Owner == "Dealer") totalhand.push(card);
+        }
+    }
+    
+    //var handplustable = phand.concat(tablecards);
+    //var handplustable = totalhand;
     var totalsuits = [], totalnums = [];
-    var ismatchingsuits, ismatchingnumbers;
-    var suitpointer;
-    var firstsuit = true;
+    var ismatchingsuits = false, ismatchingnumbers = false;
+    var suitpointer, suitcounter = 0;
+    var firstofsuit = true;
 
-/*
-    Hand Rank based on highest number on hand:
-    - High Numbers 2-14
-    - Pair 15 - 27
-    - Two pair 28 - 40
-    - Three of a kind 41 - 53
-    - Straight 54 - 64
-    - Flush 65 - 69
-    - Full house 70 - 226
-    - Four of a kind 227 - 240
-    - Straight flush 241 - 251
-    - Royal 252 - 255
+    for (const key in totalhand)
+    {
+        if (totalhand.hasOwnProperty(key)){
+            const card = totalhand[key];
+            totalsuits.push(card.suitnum);
+            totalnums.push(card.Number);
+        }
+    }
 
-    This excludes kickers, kickers will have to be calculated outside this function just to keep things relatively simple
-*/
+    //High Card
+    var handvalue = 0;
+    var temp;
 
-        //Putting all the suits and corresponding numbers in two arrays
-        for (const key in handplustable)
-        {
-            if (handplustable.hasOwnProperty(key)){
-                const card = handplustable[key];
-                totalsuits.push(card.suitnum);
-                totalnums.push(card.Number);
+    //Bubble sort in descending order;
+    for (var i = 0; i < totalnums.length; i++){
+        for (var j = 0; j < (totalnums.length - 1); j++){
+            if (totalhand[j].Number <  totalhand[j+1].Number)
+            {
+                temp = totalhand[j];
+                totalhand[j] = totalhand[j+1];
+                totalhand[j+1] = temp;
             }
         }
-        totalsuits.sort();
-        totalnums.sort();
+    }
 
-        //Check for suits - Royal Flush, Straight Flush or Flush
-        for (const key in totalsuits)
+    console.log(totalhand);
+
+    for (const key in totalhand){
+        if (cards.hasOwnProperty(key)){
+            const card = totalhand[key];
+            
+        }
+    }
+
+
+    //Hand Rank based on highest number on hand: High card 7, Royal flush = 10
+
+    /*
+    //Putting all the suits and corresponding numbers in two arrays
+    for (const key in handplustable)
+    {
+        if (handplustable.hasOwnProperty(key)){
+            const card = handplustable[key];
+            totalsuits.push(card.suitnum);
+            totalnums.push(card.Number);
+        }
+    }
+    totalsuits.sort();
+    totalnums.sort();
+
+    console.log(totalsuits);
+    console.log(totalnums);
+    */
+    /*
+    //Check for suits - Royal Flush, Straight Flush or Flush
+    for (const key in totalsuits)
+    {
+        if (totalsuits.hasOwnProperty(key)){
+            const suit = totalsuits[key];
+            if (firstofsuit == true) 
+            {
+                suitpointer = suit.suitnum;
+                firstofsuit = false;
+            }
+            
+            if (suitpointer == suit.suitnum)
+            {
+                suitcounter++;
+                if (suitcounter >= 5) ismatchingsuits = true;
+            }
+            else
+            {
+                suitcounter = 0;
+                suitpointer = suit.suitnum;
+                firstofsuit = true;
+            }
+        }
+    }
+
+    
+    //Check if any of the flushes are present
+    if (ismatchingsuits)
+    {
+        //Royal Flush
+        var isRoyal = false, isStraightFlush = false, isFlush = false;
+        var cardcount = 0;
+        for (var i = 0; i < totalnums.length; i++) 
         {
-            if (totalsuits.hasOwnProperty(key)){
-                const suit = totalsuits[key];
-                if (firstsuit == true) 
+            if (totalnums[i] = 1)
+            cardcount++;
+            if (totalnums[i] != (14-i)) cardcount = 0;
+            if (cardcount == 5) isRoyal = true;
+        }
+
+        //Straight Flush or Flush
+        if (!isRoyal) 
+        {
+            cardcount = 0;
+            for (var i = 0; i < (totalnums.length - 1); i++)
+            {
+                if (totalnums[i] = 1)
+                if (totalnums[i+1] - totalnums[i] != 1)
                 {
-                    suitpointer = suit.suitnum;
-                    ismatchingsuits = true;
-                    firstsuit = false;
+                    cardcount = 0;
                 }
-                else if (suitpointer != suit.suitnum) ismatchingsuits = false;
             }
         }
         
-        //Check if any of the flushes are present
-        if (ismatchingsuits)
+        if (isRoyal) return handvalue += 10;
+        else if (isStraightFlush) return handvalue += 9;
+        else if (isFlush) return handvalue += 5;
+    }
+    
+    else
+    {
+        var paired = 0, three = false, isFour = false, isStraight = false;
+        //High Num
+        handvalue += 1;
+        //Count paired
+        for (const key in totalnums)
         {
-            for (const key in totalnums){
-                if (totalnums.hasOwnProperty(key)){
-                    const num = totalnums[key];
-                    
+            if (totalnums.hasOwnProperty(key)){
+                const card = totalnums[key];
+                if (key != totalnums.length)
+                {
+                    if (card == totalnums[key + 1]) paired++;
                 }
             }
         }
 
-        //Straight Flush = 9
-        //if (handplustable)
+        //Check for Straight
+        for (const key in totalnums)
+        {
+            if (totalnums.hasOwnProperty(key)){
+                const card = totalnums[key];
+                if (key != totalnums.length)
+                {
+                    if (card == totalnums[key + 1]) paired++;
+                }
+            }
+        }
+    }*/
+}
+
+function SearchForCard(_card, PTCards)
+{
+    for (const key in PTCards)
+    {
+        if (PTCards.hasOwnProperty(key))
+        {
+            const card = PTCards[key];
+            if (card == _card) return true;
+        }
+    }
+    return false;
 }
 window.addEventListener('load', Main);

@@ -553,6 +553,14 @@ var users = {};
 function LobbyPage() {
     var self = this;
 
+    this.getLobbyInfo = function(data) {
+
+    }
+
+    this.getLobbyPlayers = function(data) {
+
+    }
+
     this.addListeners = function(client) {
         self.cl = client;
         self.cl.log('Lobby page listeners ready');
