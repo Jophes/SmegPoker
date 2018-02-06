@@ -17,6 +17,7 @@ const port = process.env.PORT || 8888;
 
 // ENUMS
 const PAGE = { NONE: 0, LOGIN: 1, REGISTER: 2, BROWSE: 3, LOBBY: 4, GAME: 5 };
+const pState = { PLAY: 0, STANDBY: 1, FOLD: 2};
 
 function getTime() {
     var time = new Date();
@@ -573,8 +574,106 @@ function LobbyPage() {
         
     }
 }
+// POKER GAME STUFF
 
-// - Game 
+// Object type
+function PlayingCard(suit, num, own) {
+    var self = this;
+    this.suitNumber = suit;
+    this.number = num;
+    this.owner = own;
+    switch(suit) {
+        case 0: this.suitName = "Spades"; break;
+        case 1: this.suitName = "Clubs"; break;
+        case 2: this.suitName = "Hearts"; break;
+        case 3: this.suitName = "Diamonds"; break;
+        default: this.suitName = "Joker"; break;
+    }
+    switch (num) {
+        case 1: this.numDisplay = "Ace"; break;
+        case 11: this.numDisplay = "Jack"; break;
+        case 12: this.numDisplay = "Queen"; break;
+        case 13: this.numDisplay = "King"; break;
+        default: this.numDisplay = num; break;
+    }
+    this.fullName = this.numDisplay + " of " + this.suitName;
+    this.export = function() {
+        return { suit: self.suitNumber, number: self.number };
+    }
+}
+
+function Player(uid) {
+    var self = this;
+    this.hand = [];
+    this.id = uid;
+    this.name = null;
+    this.money = 100;
+    this.state = pState.STANDBY;
+    this.exportPartial = function() {
+        return { id: self.id, name: self.name, money: self.money };
+    }
+    this.exportFull = function() {
+        var data = self.exportPartial();
+        data.hand = self.hand;
+        return data;
+    }
+    this.bet = function() {
+        
+    }
+    this.raise = function() {
+
+    }
+    this.fold = function() {
+
+    }
+}
+
+function GameInstance() {
+    var self = this;
+    this.cards = [];
+    this.dealer = [];
+    this.players = [];
+    
+    this.round = 0;
+
+    this.pot = 0;
+    this.blind = 10;
+
+    // Make deck
+    this.makeDeck = function() {   
+        for (var suit = 0; suit < 4; suit++) { 
+            for (var number = 1; number < 14; number++){
+                cards.push(new PlayingCard(suit, number, "Deck"));
+            } 
+        }
+    }
+
+    this.getHand = function(handCount) {
+        var hand = [];
+        for (let i = 0; i < handCount; i++) {
+            const cardId = Math.floor(Math.random() * self.cards.length);
+            hand.push(cards[cardId]);
+            cards.splice(cardId,1);
+        }
+        return hand;
+    }
+
+    this.startGame = function() {
+        for (let i = 0; i < 5; i++) {
+            self.players.push(new Player(null));
+        }
+        for (const key in self.players) {
+            if (self.players.hasOwnProperty(key)) {
+                self.players[key].hand = self.getHand(2);
+            }
+        }
+        self.dealer = self.getHands(5);
+    }
+}
+
+var games = [new GameInstance()];
+
+// - Game -
 function GamePage() {
     var self = this;
 

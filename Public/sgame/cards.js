@@ -23,6 +23,7 @@ function PlayingCard(suit, num, own)
 }
 
 var cards = [];
+var tablecards = [];
 var Players = [];
 var Round;
 
@@ -32,6 +33,8 @@ var Raise = false;
 
 function Main()
 {
+    socket.emit('page_setup', { page: PAGE.GAME });
+
     MakeDeck();
     //ShuffleDeck(cards);
     StartGame();
@@ -41,7 +44,7 @@ function Main()
 
 function StartGame()
 {
-    for(var i = 0; i < 3; i++)
+    for(var i = 0; i < 5; i++)
     {
         Players.push(new Player(i));
     }
@@ -95,21 +98,6 @@ function fold(player)
     Players[player].PlayerState = pState.FOLD;
 }
 
-function CheckDeck()
-{
-    for (const key in cards) {
-        if (cards.hasOwnProperty(key)) {
-            const card = cards[key];
-            if (card.Owner != "Deck")
-            {
-                var para = document.createElement('p');
-                para.innerHTML = "This card is: " + card.fullname + " - Owner: " + card.Owner;
-                document.body.appendChild(para);
-            }
-        }
-    }
-}
-
 function MakeDeck()
 {   
     for (var suit = 0; suit < 4; suit++){ 
@@ -136,7 +124,17 @@ function PlayerCards(player)
 function DealerCards()
 {
     var dealerCards = 0;
-    switch (Round)
+    while (dealerCards < Round+2)
+    {
+        var cardId = Math.floor(Math.random() * 52);
+        if (cards[cardId].Owner == "Deck")
+        {
+            //Player.PlayerCards[i] = cards[cardId];
+            cards[cardId].Owner = "Dealer";
+            dealerCards++;
+        }
+    }
+    /*switch (Round)
     {
         case 1: 
             while (dealerCards < 3)
@@ -174,7 +172,7 @@ function DealerCards()
                 }
             }
             break;
-    }
+    }*/
 }
 
 function Player(Id)
@@ -220,9 +218,6 @@ function DetermineHandRank(PlayerHandID)
     var ismatchingsuits = false, ismatchingnumbers = false;
     var suitpointer, suitcounter = 0;
     var firstofsuit = true;
-    var flush = false;
-
-
 
     for (const key in totalhand)
     {
@@ -234,7 +229,7 @@ function DetermineHandRank(PlayerHandID)
     }
 
     //High Card
-    var handvalue = handStrength.HIGH;
+    var handvalue = 0;
     var temp;
 
     //Bubble sort in descending order;
@@ -249,53 +244,20 @@ function DetermineHandRank(PlayerHandID)
         }
     }
 
-    var samecards = 0;
+    var pairs = 0;
     for (const key in totalhand){
         if (cards.hasOwnProperty(key)){
             const card = totalhand[key];
-            for (var i = 0; i < (totalhand.length-1); i++)
-            {
-                
-            }
-            var newCard = new PlayingCard();
-            SearchForCard(card, totalhand);
-            /*
             try
             {
-                if (card == totalhand[key+1]) 
-                {
-                    try 
-                    {
-                        if(card == totalhand[i - 1] && card == totalhand[i + 1])
-                        {
-                            samecards++;
-                        }
-                    } 
-                    catch (err) { }
-                    if (samecards == 0) samecards++;
-                }
+                if (card == totalhand[key+1]) pairs++;
             }
-            catch(err){}*/
+            catch(err){}
         }
     }
-
-    var straight = 0;
-    for (const key in totalhand) {
-        if (cards.hasOwnProperty(key)) {
-            const card = totalhand[key];
-            if (card.num + 1 == totalhand[key+1].num)
-            {
-                straight++;
-            }
-        }
-    }
-    if (straight == 5)
-        if (handvalue < handStrength.STRAIGHT)
-        {
-            handvalue = handStrength.STRAIGHT;
-            if (flush)
-                handvalue = handStrength.STRAIGHTFLUSH;
-        }
+    if (pairs == 1) handvalue = 1;
+    if (pairs == 2) handvalue = 4;
+    if (Pairs == 3) handvalue = 7
 
     //Hand Rank based on highest number on hand: High card 7, Royal flush = 10
 
