@@ -4,7 +4,7 @@ body {
     font-family: 'Open Sans', sans-serif;
     background-image: url("Resources/poker-background.jpg");
     color: white;
-    overflow-y: hidden;
+    /*overflow-y: hidden;*/
 }
 
 #MainMenu {
@@ -28,7 +28,29 @@ input {
     margin: 1%;
     padding: 3% 0%;
 }
-
+#PokerHands {
+    top: 0;
+    position: fixed;
+    margin: 10px;
+    padding: 10px;
+    color: white;
+    background-color: rgba(0,0,0,0);
+    border: solid white 2px;
+    border-radius: 10px;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 24px;
+    font-weight: 900;
+}
+#PokerHands > img {
+    display: none;
+}
+#PokerHands:hover > img {
+    display: block;
+}
+#PokerHandsImg {
+    display: none;
+    position: fixed;
+}
 .MenuButton {
     width: 100%;
     margin: 2%;
@@ -37,7 +59,7 @@ input {
     background-color: rgba(0,0,0,0);
     border: solid white 2px;
     border-radius: 10px;
-    font-family: 'Open Sans', sans-serif
+    font-family: 'Open Sans', sans-serif;
 }
 .MenuButton:focus {
     outline: 0;
@@ -68,23 +90,48 @@ input {
     background-position: center;
     background-size: 1200px 600px;
     background-repeat: no-repeat;*/
+    pointer-events: none;
+    margin-top: -7%;
     position: relative;
 }
 #LastAction {
     text-align: center;
     position: relative;
-    
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+body, head {
+    margin: 0;
+    padding: 0;
 }
 #GameButtons {
+    margin-top: 20px;
+    left:35%;
     width: 30%;
     height: 32px;
-    position: fixed;
-    -webkit-transform: translate(-50%, -50%);
-    transform: translate(-50%, -50%);
-    top: 10%;
-    left: 50%;
+    position: relative;
 }
 
+.RoundButton {
+    width: 100%;
+    margin-top: 10px;
+    color: white;
+    background-color: rgba(0,0,0,0.3);
+    border: solid white 2px;
+    font-family: 'Open Sans', sans-serif;
+    border-radius: 10px;
+    display: none;
+}
+.RoundButton:focus {
+    outline: 0;
+}
+.RoundButton:hover {
+    transform: scale(1.05);
+}
+.RoundButton:active {
+    transform: scale(0.95); 
+}
 .PlayerButtons {
     width: 32%;
     height: 100%;

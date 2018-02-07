@@ -29,31 +29,28 @@ var blind = 0;
 var dealer = [cardImages[52], cardImages[52], cardImages[52], cardImages[52], cardImages[52]];
 var players = [null, null, null, null, null];
 
+var lastLi = null;
+function recieveMessage(data) {
+    var lastAction = document.getElementById('LastAction');
+    var li = document.createElement('li');
+    li.innerHTML = data.message;
+    if (lastLi) {
+        lastAction.insertBefore(li, lastAction.childNodes[0]);
+    }
+    else {
+        lastAction.appendChild(li);
+    }
+    lastLi = li;
+}
+
 function cardSetup(data) {
     pot = data.pot;
     blind = data.blind;
-    var lastAction = document.getElementById('LastAction');
-    if (pot > 0)
-    {
-        lastAction.innerHTML = '£' + blind + ' was added to the pot';
-    }
-
     console.log(data);
-    for (let i = 0; i < dealer.length; i++) {
-        if (data.dealer[i]) {
-            dealer[i] = getCardImage(data.dealer[i].suit, data.dealer[i].number - 1);
-        }
-        else {
-            dealer[i] = cardImages[52];
-        }
-    }
-    for (let i = 0; i < data.players.length; i++) {
-        if (data.players[i]) {
-            players[i] = data.players[i];
-        }
-    }
 
-    if (players[data.pid].state == pState.PLAY)
+    document.getElementById('nextBtn').style.display = (data.restart ? 'block' : 'none');
+
+    if (data.players[data.pid].state == pState.PLAY && !data.restart)
     {
         var btns = document.getElementsByClassName('PlayerButtons');
         for (let i = 0; i < btns.length; i++) {
@@ -71,6 +68,22 @@ function cardSetup(data) {
             element.className = 'PlayerButtons disabled';
         }
     }
+        
+
+    for (let i = 0; i < dealer.length; i++) {
+        if (data.dealer[i]) {
+            dealer[i] = getCardImage(data.dealer[i].suit, data.dealer[i].number - 1);
+        }
+        else {
+            dealer[i] = cardImages[52];
+        }
+    }
+    for (let i = 0; i < data.players.length; i++) {
+        if (data.players[i]) {
+            players[i] = data.players[i];
+        }
+    }
+
     draw();
 }
 
@@ -187,6 +200,7 @@ function cardLoad() {
     document.getElementById('betBtn').addEventListener('click', function() { socket.emit('player_bet', {}); });
     document.getElementById('raiseBtn').addEventListener('click', function() { socket.emit('player_raise', {}); });
     document.getElementById('foldBtn').addEventListener('click', function() { socket.emit('player_fold', {}); });
+    document.getElementById('nextBtn').addEventListener('click', function() { socket.emit('round_next', {}); });
 
     c = document.getElementById('GameTable');
     ctx = c.getContext('2d');
@@ -198,6 +212,7 @@ function cardLoad() {
     
     socket.emit('page_setup', { page: PAGE.GAME });
     socket.on('card_setup', cardSetup);
+    socket.on('broadcast_message', recieveMessage);
 
     socket.on('bet_result', betResult);
     socket.on('raise_result', raiseResult);

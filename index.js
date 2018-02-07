@@ -19,6 +19,7 @@ const port = process.env.PORT || 8888;
 const PAGE = { NONE: 0, LOGIN: 1, REGISTER: 2, BROWSE: 3, LOBBY: 4, GAME: 5 };
 const pState = { PLAY: 0, STANDBY: 1, FOLD: 2};
 const handStrength = {HIGH: 0, PAIR: 1, TWOPAIR: 2, THREEKIND: 3, STRAIGHT: 4, FLUSH: 5, FULLHOUSE: 6, FOURKIND: 7, STRAIGHTFLUSH: 8, ROYAL: 9};
+const handStrs = {0: 'Highest card', 1: 'Pair', 2: 'Two pairs', 3: 'Three of a kind', 4: 'Straight', 5: 'Flush', 6: 'Full house', 7: 'Four of a kind', 8: 'Straight flush', 9: 'Royal Flush'};
 
 function getTime() {
     var time = new Date();
@@ -624,7 +625,7 @@ function Player(player_id) {
     this.uid = null;
     this.pid = player_id;
     this.name = null;
-    this.money = 100;
+    this.money = 500;
     this.check = false;
     this.state = null;
     this.exportPartial = function() {
@@ -655,6 +656,15 @@ function GameInstance() {
     this.pot = 0;
     this.blind = 10;
 
+    this.restarting = false;
+
+    this.broadcastMessage = function(msg) {
+        for (const key in self.players) {
+            if (self.players.hasOwnProperty(key) && self.players[key].uid && users[self.players[key].uid]) {
+                users[self.players[key].uid].handle.cl.emit('broadcast_message', {message: msg});
+            }
+        }
+    }
     this.checkTurn = function() {
         if (self.players[self.playerTurn] && (!self.players[self.playerTurn].uid || self.players[self.playerTurn].state != pState.PLAY)) {
             for (let i = 0; i < self.players.length; i++) {
@@ -787,10 +797,20 @@ function GameInstance() {
             {
                 straight++;
             }
+            else if (card.number == totalhand[key + 1].number)
+            {
+                key++;
+            }
+            else if (straight < 4 && card.number - 1 != totalhand[key + 1].number) 
+            {
+                straight = 0;
+            }
+            //else straight = 0;
         }
+        console.log(straight);
 
         //console.log("Straight coutner: " + straight);
-        if (straight == 5)
+        if (straight == 4) // if (straight == 5)
         {
             if (handvalue < handStrength.STRAIGHT)
             {
@@ -855,6 +875,7 @@ function GameInstance() {
         }
         console.log(scores);
         console.log("Player " + plys[highestScoreHolder] + " wins!");
+        return {pid: highestScoreHolder, score: scores[highestScoreHolder]};
     }
 
     this.secondaryCheck = function (firstPlayer, secondPlayer)
@@ -869,12 +890,12 @@ function GameInstance() {
         }*/
         for (const key in self.players[firstPlayer].hand) {
             if (self.players[firstPlayer].hand.hasOwnProperty(key)) {
-                firstPlayerhand.push(self.players[firstPlayer].hand);
+                firstPlayerhand.push(new PlayingCard(self.players[firstPlayer].hand[key].suit, self.players[firstPlayer].hand[key].number));
             }
         }
         for (const key in self.players[secondPlayer].hand) {
             if (self.players[secondPlayer].hand.hasOwnProperty(key)) {
-                secondPlayerhand.push(self.players[secondPlayer].hand);
+                secondPlayerhand.push(new PlayingCard(self.players[secondPlayer].hand[key].suit, self.players[secondPlayer].hand[key].number));
             }
         }
         //Highest num first after converting aces from 1 to 14
@@ -895,8 +916,8 @@ function GameInstance() {
             secondPlayerhand[0] = secondPlayerhand[1];
             secondPlayerhand[1] = temp;
         }
-        //console.log(firstPlayerhand);
-        //console.log(secondPlayerhand);
+        console.log(firstPlayerhand);
+        console.log(secondPlayerhand);
     
         //Kicker comparisson
         if (firstPlayerhand[0].number == secondPlayerhand[0].number)
@@ -930,8 +951,9 @@ function GameInstance() {
                     if (self.players.hasOwnProperty(i)) {
                         if (self.players[i].uid && self.players[i].state != pState.FOLD) {
                             self.players[i].money += self.pot;
-                            self.startGame();
-                            self.checkTurn();
+                            self.broadcastMessage(self.players[i].name + ' has won £' + self.pot + ' via fold');
+                            self.pot = 0;
+                            self.restart = true;
                             self.broadcastData();
                             return;
                         }
@@ -951,7 +973,12 @@ function GameInstance() {
             }
             if (allIn) {
                 console.log('ALL IN WIN CHECK');
-                self.checkWin();
+                var winData = self.checkWin();
+                self.broadcastMessage(self.players[winData.pid].name + ' has won £' + self.pot + ' with ' + handStrs[winData.score]);
+                self.players[winData.pid].money += self.pot;
+                self.pot = 0;
+                self.restart = true;
+                self.broadcastData();
                 return;
             }
 
@@ -960,7 +987,7 @@ function GameInstance() {
             for (const i in self.players) {
                 if (self.players.hasOwnProperty(i)) {
                     if (self.players[i].uid) {
-                        if (!self.players[i].check && self.players[i].state != pState.FOLD) {
+                        if (!(self.players[i].check || (self.players[i].money <= 0 && self.players[i].state != pState.FOLD)) && self.players[i].state != pState.FOLD) {
                             allChecked = false;
                             break;
                         }
@@ -971,7 +998,12 @@ function GameInstance() {
                 self.round++;
                 if (self.round >= 2) {
                     console.log('ALL CHECK ROUND OVER WIN CHECK');
-                    self.checkWin();
+                    var winData = self.checkWin();
+                    self.broadcastMessage(self.players[winData.pid].name + ' has won £' + self.pot + ' with ' + handStrs[winData.score]);
+                    self.players[winData.pid].money += self.pot;
+                    self.pot = 0;
+                    self.restart = true;
+                    self.broadcastData();
                 }
                 else {
                     console.log('ALL CHECK ROUND OVER');
@@ -994,7 +1026,7 @@ function GameInstance() {
         var playerExport = [];
         for (const i in self.players) {
             if (self.players.hasOwnProperty(i)) {
-                playerExport.push(i == pid ? self.players[i].exportFull() : self.players[i].exportPartial());
+                playerExport.push((i == pid || self.restart) ? self.players[i].exportFull() : self.players[i].exportPartial());
             }
         }
         return playerExport;
@@ -1004,7 +1036,7 @@ function GameInstance() {
         var dealerExport = [];
         for (const i in self.dealer) {
             if (self.dealer.hasOwnProperty(i)) {
-                dealerExport.push(i < (self.round + 3) ? self.dealer[i].export() : null);
+                dealerExport.push((i < (self.round + 3) || self.restart) ? self.dealer[i].export() : null);
             }
         }
         return dealerExport;
@@ -1067,16 +1099,25 @@ function GameInstance() {
         self.startGame();
     }
 
+    this.restartGame = function() {
+        self.startGame();
+        self.checkTurn();
+        self.broadcastData();
+    }
+
     this.startGame = function() {
         self.pot = 0;
         self.blind = 10;
         self.playerTurn = 0;
         self.round = 0;
+        self.restart = false;
+
         console.log('START GAME round: ' + self.round);
         for (let i = 0; i < self.players.length; i++) {
             if (self.players[i].uid) {
                 self.players[i].state = pState.STANDBY;
             }
+            self.players[i].check = false;
         }
         self.makeDeck();
         for (const key in self.players) {
@@ -1085,6 +1126,10 @@ function GameInstance() {
             }
         }
         self.dealer = self.getHand(5);
+        /*self.dealer = [new PlayingCard(2, 1), new PlayingCard(1, 7), new PlayingCard(0, 10), new PlayingCard(3, 11), new PlayingCard(3, 13)];
+        self.players[0].hand = [new PlayingCard(1, 9), new PlayingCard(3, 8)];
+        self.players[1].hand = [new PlayingCard(1, 1), new PlayingCard(2, 3)];
+        self.players[2].hand = [new PlayingCard(2, 7), new PlayingCard(0, 13)];*/
     }
 
     this.broadcastData = function() {
@@ -1092,7 +1137,7 @@ function GameInstance() {
         for (const key in self.players) {
             if (self.players.hasOwnProperty(key)) {
                 if (self.players[key].uid && users[self.players[key].uid] && users[self.players[key].uid].handle) {
-                    users[self.players[key].uid].handle.cl.emit('card_setup', { players: self.exportPlayers(self.players[key].pid), dealer: dealerExport, pid: self.players[key].pid, blind: self.blind, pot: self.pot, turn: self.playerTurn, round: self.round });
+                    users[self.players[key].uid].handle.cl.emit('card_setup', { players: self.exportPlayers(self.players[key].pid), dealer: dealerExport, pid: self.players[key].pid, blind: self.blind, pot: self.pot, turn: self.playerTurn, round: self.round, restart: self.restart });
                 }
             }
         }
@@ -1118,6 +1163,10 @@ function GamePage() {
             else if (state == pState.FOLD) {
                 result.message = 'Cannot ' + tag + ' when you\'ve folded.';
             }
+        }
+        if (games[self.gid].restart) {
+            result.valid = false;
+            result.message = 'Game is resseting, please wait.';
         }
         return result;
     }
@@ -1155,11 +1204,18 @@ function GamePage() {
         self.cl.emit('fold_result', foldResult);
     }
 
+    this.restartBtn = function(data) {
+        if (games[self.gid].restart) {
+            games[self.gid].restartGame();
+        }
+    }
+
     this.addListeners = function(client) {
         self.cl = client;
         self.cl.on('player_bet', self.playerBet);
         self.cl.on('player_raise', self.playerRaise);
         self.cl.on('player_fold', self.playerFold);
+        self.cl.on('round_next', self.restartBtn);
         self.cl.log('Game page listeners ready');
     }
 

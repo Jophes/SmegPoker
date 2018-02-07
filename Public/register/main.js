@@ -33,7 +33,7 @@ function registerResult(data) {
             d.setTime(d.getTime() + 5529600000);
             document.cookie = 'token=' + data.token + ';expires=' + d.toUTCString() + ';path=/';
         }
-        window.location.href = './browse';
+        window.location.href = './game';
     }
 }
 socket.on('register_result', registerResult);
