@@ -83,18 +83,19 @@ function generateUserToken(uid, func) {
 }
 
 function validateUserToken(token, func) {
-    con.query('SELECT user_id FROM smeg_poker.tokens WHERE token = ?;', [token], function(err, rows, fields) {
+    con.query('SELECT tokens.user_id, users.name FROM smeg_poker.tokens, smeg_poker.users WHERE tokens.token = ? and tokens.user_id = users.id;', [token], function(err, rows, fields) {
         if (err) {
             console.log('Failed to search database for user token!');
             console.log(err);
         }
         else {
-            var user_id;
+            var user_id, username;
             for (const i in rows) {
                 user_id = rows[i].user_id;
+                username = rows[i].name;
                 break;
             }
-            func(user_id);
+            func(user_id, username);
         }
     });
 }
@@ -219,7 +220,7 @@ function LoginPage() {
         self.cl.on('login', self.login);
     }
     
-    this.authed = function(uid) {
+    this.authed = function(uid, username) {
         self.user_id = uid;
     }
 
@@ -350,7 +351,7 @@ function RegisterPage() {
         self.cl.on('register', self.register);
     }
     
-    this.authed = function(uid) {
+    this.authed = function(uid, username) {
         self.user_id = uid;
     }
 
@@ -547,7 +548,7 @@ function BrowsePage() {
         self.cl.on('joinRoom', self.joinRoom);
     }
     
-    this.authed = function(uid) {
+    this.authed = function(uid, username) {
         self.user_id = uid;
     }
 
@@ -578,7 +579,7 @@ function LobbyPage() {
         self.cl.log('Lobby page listeners ready');
     }
 
-    this.authed = function(uid) {
+    this.authed = function(uid, username) {
         self.user_id = uid;
     }
 
@@ -625,48 +626,79 @@ function Player(player_id) {
     this.money = 100;
     this.state = pState.STANDBY;
     this.exportPartial = function() {
-        return { id: self.id, name: self.name, money: self.money };
+        return { uid: self.uid, pid: self.pid, name: self.name, money: self.money };
     }
     this.exportFull = function() {
         var data = self.exportPartial();
-        data.hand = self.hand;
+        data.hand = [];
+        for (const i in self.hand) {
+            if (self.hand.hasOwnProperty(i)) {
+                data.hand.push(self.hand[i].export());
+            }
+        }
         return data;
-    }
-    this.bet = function(blind) {
-        var amountBet = 0;
-        if (self.money > 0) {
-            if (self.money - blind > 0) {
-                amountBet = blind;
-            }
-            else {
-                amountBet = self.money;                
-            }
-            self.money -= amountBet;
-        }
-        return amountBet;
-    }
-    this.raise = function(blind) {
-        if (self.money - blind * 2 > 0) {
-            blind *= 2;
-        }
-    }
-    this.fold = function() {
-        self.state = pState.FOLD;
     }
 }
 
 function GameInstance() {
     var self = this;
+
     this.cards = [];
     this.dealer = [];
     this.players = [];
-    
+
     this.round = 0;
 
     this.pot = 0;
     this.blind = 10;
 
-    // Make deck
+    this.exportPlayers = function(pid) {
+        var playerExport = [];
+        for (const i in self.players) {
+            if (self.players.hasOwnProperty(i)) {
+                playerExport.push(i == pid ? self.players[i].exportFull() : self.players[i].exportPartial());
+            }
+        }
+        return playerExport;
+    }
+
+    this.exportDealer = function() {
+        var dealerExport = [];
+        for (const i in self.dealer) {
+            if (self.dealer.hasOwnProperty(i)) {
+                dealerExport.push(i < (self.round + 3) ? self.dealer[i].export() : null);
+            }
+        }
+        return dealerExport;
+    }
+    
+    this.bet = function(pid) {
+        if (self.players[pid].money > 0) {
+            var amountBet = 0;
+            if (self.players[pid].money - self.blind > 0) {
+                amountBet = self.blind;
+            }
+            else {
+                amountBet = self.players[pid].money;                
+            }
+            self.players[pid].money -= amountBet;
+            self.pot += amountBet;
+        }
+    }
+    this.raise = function(pid) {
+        if (self.players[pid].money - self.blind * 2 > 0) {
+            self.blind *= 2;
+            self.bet(pid);
+        }
+        else {
+            self.blind += self.players[pid].money;
+            bet(pid);
+        }
+    }
+    this.fold = function(pid) {
+        self.players[pid].state = pState.FOLD;
+    } 
+
     this.makeDeck = function() {   
         self.cards = [];
         for (var suit = 0; suit < 4; suit++) { 
@@ -718,18 +750,21 @@ function GamePage() {
         self.cl.log('Game page listeners ready');
     }
 
-    this.authed = function(uid) {
+    this.authed = function(uid, username) {
         self.user_id = uid;
+        self.username = username;
         for (const i in games[self.gid].players) {
             if (games[self.gid].players.hasOwnProperty(i)) {
                 if (games[self.gid].players[i].uid == null) {
                     self.pid = games[self.gid].players[i].pid;
                     games[self.gid].players[self.pid].uid = self.user_id;
+                    games[self.gid].players[self.pid].name = self.username;
                     break;
                 }
             }
         }
         self.cl.log('User authed, adding to game. uid: ' + self.user_id + ' pid: ' + self.pid);
+        self.cl.emit('card_setup', { players: games[self.gid].exportPlayers(self.pid), dealer: games[self.gid].exportDealer()});
     }
 
     this.removeListeners = function() {
@@ -737,6 +772,7 @@ function GamePage() {
 
     this.disconnect = function() {
         games[self.gid].players[self.pid].uid = null;
+        games[self.gid].players[self.pid].name = null;
         self.cl.log('User disconnected, removed from game');
     }
 }
@@ -757,15 +793,16 @@ io.on('connection', function(client) {
     client.log('Client connected');
 
     function tokenCheck(data) {
-        validateUserToken(data.token, function(uid) {
+        validateUserToken(data.token, function(uid, name) {
             var token_result = { valid: false };
             if (uid != null) {
                 connection.user_id = uid;
+                connection.username = name;
                 token_result.valid = true;
                 token_result.user_id = uid;
                 client.log('Token check determined user is uid: ' + uid);
                 if (pageObj != null) {
-                    pageObj.authed(connection.user_id);
+                    pageObj.authed(connection.user_id, name);
                     users[uid] = { handle: pageObj };
                 }
             }
@@ -785,7 +822,7 @@ io.on('connection', function(client) {
                 }
             });
             if (connection.user_id != null) {
-                pageObj.authed(connection.user_id);
+                pageObj.authed(connection.user_id, connection.username);
                 users[connection.user_id] = { handle: pageObj };
             }
         }
