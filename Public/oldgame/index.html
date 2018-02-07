@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>British Hold 'em</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" media="screen" href="../styles.css" />
+    <link rel="shortcut icon" type="image/png" href="../Resources/favicon.png"/>
+    <script src="../enums.js"></script>
+    <script src="cards.js"></script>
+</head>
+<body>
+    <div id="Game">
+        <canvas id="GameTable" width="1000px", height="498px">
+            
+        </canvas>
+        <div id="Wallet">Wallet: £<a id="CurrentWallet">00</a></div>
+        <div id="GameButtons">
+            <button class="PlayerButtons" onclick="bet(1)">BET</button>
+            <button class="PlayerButtons" onclick="raise(1)">RAISE</button>
+            <button class="PlayerButtons" onclick="fold(1)">FOLD</button>
+        </div>
+    </div>
+</body>
+</html>

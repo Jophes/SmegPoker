@@ -18,6 +18,7 @@ const port = process.env.PORT || 8888;
 // ENUMS
 const PAGE = { NONE: 0, LOGIN: 1, REGISTER: 2, BROWSE: 3, LOBBY: 4, GAME: 5 };
 const pState = { PLAY: 0, STANDBY: 1, FOLD: 2};
+const handStrength = {HIGH: 0, PAIR: 1, TWOPAIR: 2, THREEKIND: 3, STRAIGHT: 4, FLUSH: 5, FULLHOUSE: 6, FOURKIND: 7, STRAIGHTFLUSH: 8, ROYAL: 9};
 
 function getTime() {
     var time = new Date();
@@ -100,7 +101,7 @@ function validateUserToken(token, func) {
     });
 }
 
-const renameTable = {'/' : '/index.html', '/login' : '/login/index.html', '/register' : '/register/index.html' , '/browse' : '/browse/index.html' , '/lobby' : '/lobby/index.html' , '/game' : '/game/index.html' };
+const renameTable = {'/' : '/index.html', '/login' : '/index.html', '/register' : '/register/index.html' , '/browse' : '/browse/index.html' , '/lobby' : '/lobby/index.html' , '/game' : '/game/index.html' };
 function handlePageGetRequest(req, res, next) {
     if (req.method == 'GET' && renameTable.hasOwnProperty(req.url))
     {
@@ -624,9 +625,10 @@ function Player(player_id) {
     this.pid = player_id;
     this.name = null;
     this.money = 100;
-    this.state = pState.STANDBY;
+    this.check = false;
+    this.state = null;
     this.exportPartial = function() {
-        return { uid: self.uid, pid: self.pid, name: self.name, money: self.money };
+        return { uid: self.uid, pid: self.pid, name: self.name, state: self.state, money: self.money };
     }
     this.exportFull = function() {
         var data = self.exportPartial();
@@ -646,11 +648,347 @@ function GameInstance() {
     this.cards = [];
     this.dealer = [];
     this.players = [];
+    this.playerTurn = 0;
 
     this.round = 0;
 
     this.pot = 0;
     this.blind = 10;
+
+    this.checkTurn = function() {
+        if (self.players[self.playerTurn] && (!self.players[self.playerTurn].uid || self.players[self.playerTurn].state != pState.PLAY)) {
+            for (let i = 0; i < self.players.length; i++) {
+                const tmpId = (self.playerTurn + i) % self.players.length;
+                if (self.players[tmpId].uid && self.players[tmpId].state != pState.FOLD) {
+                    self.playerTurn = tmpId;
+                    self.players[self.playerTurn].state = pState.PLAY;
+                    break;
+                } 
+            }
+        }
+    }
+
+    this.nextTurn = function() {
+        if (self.players[self.playerTurn].state == pState.PLAY) {
+            self.players[self.playerTurn].state = pState.STANDBY;
+        }
+        for (let i = 1; i <= self.players.length; i++) {
+            const tmpId = (self.playerTurn + i) % self.players.length;
+            if (self.players[tmpId].uid && self.players[tmpId].state == pState.STANDBY && self.players[tmpId].money > 0) {
+                self.playerTurn = tmpId;
+                self.players[self.playerTurn].state = pState.PLAY;
+                break;
+            } 
+        }
+    }
+
+    this.getHandRank = function(PlayerHandID) {
+        var totalhand = [];
+        
+        var totalsuits = [], totalnums = [];
+        var ismatchingsuits = false, ismatchingnumbers = false;
+        var suitpointer, suitcounter = 0;
+        var firstofsuit = true;
+        
+        /*for (const key in cards) {
+            if (cards.hasOwnProperty(key)) {
+                const card = cards[key];
+                if (card.Owner == PlayerHandID) totalhand.push(card);
+                if (card.Owner == "Dealer") totalhand.push(card);
+            }
+        }*/
+        //totalhand = fullhouse1;
+        
+        
+        for (const i in self.players[PlayerHandID].hand) {
+            if (self.players[PlayerHandID].hand.hasOwnProperty(i)) {
+                totalhand.push(self.players[PlayerHandID].hand[i]);
+            }
+        }
+        for (const i in self.dealer) {
+            if (self.dealer.hasOwnProperty(i)) {
+                totalhand.push(self.dealer[i]);
+            }
+        }
+        
+        //var handplustable = phand.concat(tablecards);
+        //var handplustable = totalhand;
+        var totalsuits = [], totalnums = [];
+        var ismatchingsuits = false, ismatchingnumbers = false;
+        var suitpointer, suitcounter = 0;
+        var firstofsuit = true;
+
+        for (const key in totalhand)
+        {
+            if (totalhand.hasOwnProperty(key)){
+                const card = totalhand[key];
+                totalsuits.push(card.suitNumber);
+                totalnums.push(card.number);
+            }
+        }
+
+        //High Card
+        var handvalue = handStrength.HIGH;
+        var temp;
+
+        //Bubble sort in descending order;
+        for (var i = 0; i < totalnums.length; i++){
+            for (var j = 0; j < (totalnums.length - 1); j++){
+                if (totalhand[j].number <  totalhand[j+1].number)
+                {
+                    temp = totalhand[j];
+                    totalhand[j] = totalhand[j+1];
+                    totalhand[j+1] = temp;
+                }
+            }
+        }
+        
+        //console.log(totalhand);
+        var samecards = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        var pairs = 0; three = false; four = false;
+        for (const key in totalhand){
+            if (key >= totalhand.length) break;
+            if (totalhand.hasOwnProperty(key)){
+                const card = totalhand[key];
+                samecards[card.number]++;
+            }
+        }
+        for (var i = 0; i < samecards.length; i++)
+        {
+            if (samecards[i] == 2) pairs++;
+            else if (samecards[i] == 3) three = true;  
+            else if (samecards[i] == 4) four = true;
+        }
+
+        if (four && handvalue < handStrength.FOURKIND) handvalue = handStrength.FOURKIND;
+        else if (three && pairs > 0 && handvalue < handStrength.FULLHOUSE) handvalue = handStrength.FULLHOUSE;
+        else if (three && handvalue < handStrength.THREEKIND) handvalue = handStrength.THREEKIND;
+        else if (pairs > 1 && handvalue < handStrength.TWOPAIR) handvalue = handStrength.TWOPAIR;
+        else if (pairs && handvalue < handStrength.PAIR) handvalue = handStrength.PAIR;
+
+        //Flush and straights
+        var straight = 0;
+        var royalFlush = true;
+        //Suit indexes - Spades: 0, Clubs: 1, Hearts: 2, Diamonds: 3
+        var suitFlush = [0, 0, 0, 0];
+        
+        for (const key in totalhand) {
+            if (totalhand.hasOwnProperty(key)) {
+                const card = totalhand[key];
+                suitFlush[card.suitNumber]++;
+                if (suitFlush[card.suitNumber] == 5 && handvalue < handStrength.FLUSH) handvalue = handStrength.FLUSH;
+            }
+        }
+        //console.log("In flush with: " + suitFlush);
+        
+        for (let key = 0; key < totalhand.length - 1; key++) {
+            const card = totalhand[key];
+            if (card.number - 1 == totalhand[key + 1].number)
+            {
+                straight++;
+            }
+        }
+
+        //console.log("Straight coutner: " + straight);
+        if (straight == 5)
+        {
+            if (handvalue < handStrength.STRAIGHT)
+            {
+                handvalue = handStrength.STRAIGHT;
+            }
+        }
+        if (handvalue == handStrength.FLUSH && straight == 5)
+        {
+            handvalue = handStrength.STRAIGHTFLUSH;
+            for (const key in totalhand) {
+                if (totalhand.hasOwnProperty(key)) {
+                    const card = totalhand[key];
+                    if (card.number > 1 || card.number < 10)
+                    {
+                        royalFlush = false;
+                        break;
+                    }
+                }
+            }
+            if (royalFlush) handvalue = handStrength.ROYAL;
+        }
+        //console.log(totalhand);
+        /*console.log("Pairs: " + pairs);
+        console.log("Hand Strength: " + handvalue);*/
+        
+        return handvalue;
+    }
+
+    this.checkWin = function() {
+        var plys = [];
+        for (let i = 0; i < self.players.length; i++) {
+            if (self.players[i].uid) {
+                plys.push(i);
+            }
+        }
+        console.log(plys);
+        /*var handRanks = { };
+        for (const pid in self.players) {
+            if (self.players.hasOwnProperty(pid) && self.players[pid].uid) {
+                handRanks[pid] = self.getHandRank(pid);
+            }
+        }
+        console.log(handRanks);*/
+        var scores = [];
+        var highestScoreHolder = 0, compareResult;
+        for (var i = 0; i < plys.length; i++)
+        {
+            scores[plys[i]] = self.getHandRank(plys[i]);
+            if (plys[i] > 0 && scores[plys[i]] > scores[plys[highestScoreHolder]]) highestScoreHolder = i;
+            else if (plys[i] > 0 && scores[plys[i]] == scores[plys[highestScoreHolder]])
+            {
+                console.log("Comparing P" + plys[highestScoreHolder] + " and P" + plys[i]);
+                compareResult = self.secondaryCheck(plys[highestScoreHolder], plys[i]);
+                if (compareResult == 0) console.log("Draw P"+plys[highestScoreHolder] + " and P" + plys[i]);
+                else if (compareResult == 1) console.log("P" + plys[highestScoreHolder] + " won against P" + plys[i]);
+                else if (compareResult == 2) 
+                {
+                    console.log("P" + plys[i] + " won against P" + plys[highestScoreHolder] + "! Swapping places...");
+                    highestScoreHolder = i
+                }
+            }
+        }
+        console.log(scores);
+        console.log("Player " + plys[highestScoreHolder] + " wins!");
+    }
+
+    this.secondaryCheck = function (firstPlayer, secondPlayer)
+    {
+        var firstPlayerhand = [], secondPlayerhand = [], temp;
+        /*for (const key in cards) {
+            if (cards.hasOwnProperty(key)) {
+                const card = cards[key];
+                if (card.Owner == firstPlayer) firstPlayerhand.push(card);
+                if (card.Owner == secondPlayer) secondPlayerhand.push(card);
+            }
+        }*/
+        for (const key in self.players[firstPlayer].hand) {
+            if (self.players[firstPlayer].hand.hasOwnProperty(key)) {
+                firstPlayerhand.push(self.players[firstPlayer].hand);
+            }
+        }
+        for (const key in self.players[secondPlayer].hand) {
+            if (self.players[secondPlayer].hand.hasOwnProperty(key)) {
+                secondPlayerhand.push(self.players[secondPlayer].hand);
+            }
+        }
+        //Highest num first after converting aces from 1 to 14
+        if (firstPlayerhand[0].number == 1) firstPlayerhand[0].number = 14;
+        if (firstPlayerhand[1].number == 1) firstPlayerhand[1].number = 14;
+        if (secondPlayerhand[0].number == 1) secondPlayerhand[0].number = 14;
+        if (secondPlayerhand[1].number == 1) secondPlayerhand[1].number = 14;
+    
+        if (firstPlayerhand[0].number < firstPlayerhand[1].number)
+        {
+            temp = firstPlayerhand[0];
+            firstPlayerhand[0] = firstPlayerhand[1];
+            firstPlayerhand[1] = temp;
+        }
+        if (secondPlayerhand[0].number < secondPlayerhand[1].number)
+        {
+            temp = secondPlayerhand[0];
+            secondPlayerhand[0] = secondPlayerhand[1];
+            secondPlayerhand[1] = temp;
+        }
+        //console.log(firstPlayerhand);
+        //console.log(secondPlayerhand);
+    
+        //Kicker comparisson
+        if (firstPlayerhand[0].number == secondPlayerhand[0].number)
+        {
+            if(firstPlayerhand[1].number == secondPlayerhand[1].number) return 0;
+            else if (firstPlayerhand[1].number > secondPlayerhand[1].number) return 1;
+            else return 2;
+        }
+        else if (firstPlayerhand[0].number > secondPlayerhand[0].number) return 1;
+        else return 2;
+    }
+    
+    
+    this.checkRound = function() {
+        if (self.round < 2) {
+            // Fold check
+            var playerCount = 0, foldCount = 0;
+            for (const i in self.players) {
+                if (self.players.hasOwnProperty(i)) {
+                    if (self.players[i].uid) {
+                        playerCount++;
+                        if (self.players[i].state == pState.FOLD) {
+                            foldCount++;
+                        }
+                    }
+                }
+            }
+            if (foldCount == playerCount - 1) {
+                console.log('FOLD WIN CHECK');
+                for (const i in self.players) {
+                    if (self.players.hasOwnProperty(i)) {
+                        if (self.players[i].uid && self.players[i].state != pState.FOLD) {
+                            self.players[i].money += self.pot;
+                            self.startGame();
+                            self.checkTurn();
+                            self.broadcastData();
+                            return;
+                        }
+                    }
+                }
+                return;
+            }
+            
+            // All in check
+            var allIn = true;
+            for (const i in self.players) {
+                if (self.players.hasOwnProperty(i)) {
+                    if (self.players[i].uid && self.players[i].state != pState.FOLD && self.players[i].money > 0) {
+                        allIn = false;
+                    }
+                }
+            }
+            if (allIn) {
+                console.log('ALL IN WIN CHECK');
+                self.checkWin();
+                return;
+            }
+
+            // Check check
+            var allChecked = true;
+            for (const i in self.players) {
+                if (self.players.hasOwnProperty(i)) {
+                    if (self.players[i].uid) {
+                        if (!self.players[i].check && self.players[i].state != pState.FOLD) {
+                            allChecked = false;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (allChecked) {
+                self.round++;
+                if (self.round >= 2) {
+                    console.log('ALL CHECK ROUND OVER WIN CHECK');
+                    self.checkWin();
+                }
+                else {
+                    console.log('ALL CHECK ROUND OVER');
+                    for (let i = 0; i < self.players.length; i++) {
+                        self.players[i].check = false;
+                    }
+                    if (self.players[self.playerTurn].state == pState.PLAY) {
+                        self.players[self.playerTurn].state = pState.STANDBY;
+                    }
+                    self.playerTurn = 0;
+                    self.checkTurn();
+                    self.broadcastData();
+                    return;
+                }
+            }
+        }
+    }
 
     this.exportPlayers = function(pid) {
         var playerExport = [];
@@ -681,6 +1019,7 @@ function GameInstance() {
             else {
                 amountBet = self.players[pid].money;                
             }
+            self.players[pid].check = true;
             self.players[pid].money -= amountBet;
             self.pot += amountBet;
         }
@@ -692,7 +1031,10 @@ function GameInstance() {
         }
         else {
             self.blind += self.players[pid].money;
-            bet(pid);
+            self.bet(pid);
+        }
+        for (let i = 0; i < self.players.length; i++) {
+            self.players[i].check = false;
         }
     }
     this.fold = function(pid) {
@@ -726,6 +1068,16 @@ function GameInstance() {
     }
 
     this.startGame = function() {
+        self.pot = 0;
+        self.blind = 10;
+        self.playerTurn = 0;
+        self.round = 0;
+        console.log('START GAME round: ' + self.round);
+        for (let i = 0; i < self.players.length; i++) {
+            if (self.players[i].uid) {
+                self.players[i].state = pState.STANDBY;
+            }
+        }
         self.makeDeck();
         for (const key in self.players) {
             if (self.players.hasOwnProperty(key)) {
@@ -733,6 +1085,17 @@ function GameInstance() {
             }
         }
         self.dealer = self.getHand(5);
+    }
+
+    this.broadcastData = function() {
+        const dealerExport = self.exportDealer();
+        for (const key in self.players) {
+            if (self.players.hasOwnProperty(key)) {
+                if (self.players[key].uid && users[self.players[key].uid] && users[self.players[key].uid].handle) {
+                    users[self.players[key].uid].handle.cl.emit('card_setup', { players: self.exportPlayers(self.players[key].pid), dealer: dealerExport, pid: self.players[key].pid, blind: self.blind, pot: self.pot, turn: self.playerTurn, round: self.round });
+                }
+            }
+        }
     }
 }
 
@@ -745,8 +1108,58 @@ function GamePage() {
     var self = this;
     self.gid = 0;
 
+    this.stateCheck = function(state, tag) {
+        var result = { valid: true };
+        if (state != pState.PLAY) {
+            result.valid = false;
+            if (state == pState.STANDBY) {
+                result.message = 'Cannot ' + tag + ' when it is not your turn.';
+            }
+            else if (state == pState.FOLD) {
+                result.message = 'Cannot ' + tag + ' when you\'ve folded.';
+            }
+        }
+        return result;
+    }
+
+    this.playerBet = function(data) {
+        var betResult = self.stateCheck(games[self.gid].players[self.pid].state, 'bet');
+        if (betResult.valid) {
+            games[self.gid].bet(self.pid);
+            games[self.gid].nextTurn();
+            games[self.gid].checkRound();
+            games[self.gid].broadcastData();
+        }
+        self.cl.emit('bet_result', betResult);
+    }
+
+    this.playerRaise = function(data) {
+        var raiseResult = self.stateCheck(games[self.gid].players[self.pid].state, 'raise');
+        if (raiseResult.valid) {
+            games[self.gid].raise(self.pid);
+            games[self.gid].nextTurn();
+            games[self.gid].checkRound();
+            games[self.gid].broadcastData();
+        }
+        self.cl.emit('raise_result', raiseResult);
+    }
+
+    this.playerFold = function(data) {
+        var foldResult = self.stateCheck(games[self.gid].players[self.pid].state, 'fold');
+        if (foldResult.valid) {
+            games[self.gid].fold(self.pid);
+            games[self.gid].nextTurn();
+            games[self.gid].checkRound();
+            games[self.gid].broadcastData();
+        }
+        self.cl.emit('fold_result', foldResult);
+    }
+
     this.addListeners = function(client) {
         self.cl = client;
+        self.cl.on('player_bet', self.playerBet);
+        self.cl.on('player_raise', self.playerRaise);
+        self.cl.on('player_fold', self.playerFold);
         self.cl.log('Game page listeners ready');
     }
 
@@ -755,24 +1168,32 @@ function GamePage() {
         self.username = username;
         for (const i in games[self.gid].players) {
             if (games[self.gid].players.hasOwnProperty(i)) {
-                if (games[self.gid].players[i].uid == null) {
+                if (games[self.gid].players[i].uid == null || games[self.gid].players[i].uid == self.user_id) {
                     self.pid = games[self.gid].players[i].pid;
                     games[self.gid].players[self.pid].uid = self.user_id;
                     games[self.gid].players[self.pid].name = self.username;
+                    games[self.gid].players[self.pid].state = pState.STANDBY;
                     break;
                 }
             }
         }
+        games[self.gid].checkTurn();
         self.cl.log('User authed, adding to game. uid: ' + self.user_id + ' pid: ' + self.pid);
-        self.cl.emit('card_setup', { players: games[self.gid].exportPlayers(self.pid), dealer: games[self.gid].exportDealer()});
+        //self.cl.emit('card_setup', { players: games[self.gid].exportPlayers(self.pid), dealer: games[self.gid].exportDealer()});
+        games[self.gid].broadcastData();
     }
 
     this.removeListeners = function() {
     }
 
     this.disconnect = function() {
-        games[self.gid].players[self.pid].uid = null;
-        games[self.gid].players[self.pid].name = null;
+        if (games[self.gid].players[self.pid]) {
+            games[self.gid].players[self.pid].uid = null;
+            games[self.gid].players[self.pid].name = null;
+            games[self.gid].players[self.pid].state = null;
+        }
+        games[self.gid].checkTurn();
+        games[self.gid].broadcastData();
         self.cl.log('User disconnected, removed from game');
     }
 }
@@ -802,8 +1223,8 @@ io.on('connection', function(client) {
                 token_result.user_id = uid;
                 client.log('Token check determined user is uid: ' + uid);
                 if (pageObj != null) {
-                    pageObj.authed(connection.user_id, name);
                     users[uid] = { handle: pageObj };
+                    pageObj.authed(connection.user_id, name);
                 }
             }
             client.emit('token_result', token_result);
@@ -822,8 +1243,8 @@ io.on('connection', function(client) {
                 }
             });
             if (connection.user_id != null) {
-                pageObj.authed(connection.user_id, connection.username);
                 users[connection.user_id] = { handle: pageObj };
+                pageObj.authed(connection.user_id, connection.username);
             }
         }
         client.removeListener('page_setup', pageSetup);

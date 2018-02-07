@@ -1,5 +1,6 @@
 var token;
 var redirect = false;
+var loginRedirect = false;
 if (io) {
     function getCookie(cname) {
         var name = cname + "=";
@@ -22,17 +23,25 @@ if (io) {
 
     if (token == '') {
         console.log('No token found');
+        setTimeout(function() {
+            if (loginRedirect) {
+                window.location.href = './';
+            }
+        }, 50);
     }
     else {
         socket.on('token_result', function(data) {
             if (data.valid) {
                 console.log('Token valid! Uid: ' + data.user_id);
                 if (redirect) {
-                    window.location.href = './browse';
+                    window.location.href = './game';
                 }
             }
             else {
                 console.log('Token invalid.');
+                if (loginRedirect) {
+                    window.location.href = './game';
+                }
             }
         });
     }

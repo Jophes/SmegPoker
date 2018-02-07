@@ -5,21 +5,24 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>British Hold 'em</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" type="text/css" media="screen" href="../styles.css" />
-    <link rel="shortcut icon" type="image/png" href="../Resources/favicon.png"/>
-    <script src="../enums.js"></script>
-    <script src="cards.js"></script>
+    <link rel="stylesheet" type="text/css" media="screen" href="/styles.css" />
+    <link rel="shortcut icon" type="image/png" href="/Resources/favicon.png"/>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/token_check.js"></script>
+    <script src="/enums.js"></script>
+    <script src="/game/main.js"></script>
 </head>
 <body>
     <div id="Game">
-        <canvas id="GameTable" width="1000px", height="498px">
+        <canvas id="GameTable" width="1920px", height="960px">
             
         </canvas>
-        <div id="Wallet">Wallet: £<a id="CurrentWallet">00</a></div>
+        <div id="LastAction"></div>
         <div id="GameButtons">
-            <button class="PlayerButtons" onclick="bet(1)">BET</button>
-            <button class="PlayerButtons" onclick="raise(1)">RAISE</button>
-            <button class="PlayerButtons" onclick="fold(1)">FOLD</button>
+            <button id="betBtn" class="PlayerButtons">CHECK</button>
+            <button id="raiseBtn" class="PlayerButtons">RAISE</button>
+            <button id="foldBtn" class="PlayerButtons">FOLD</button>
         </div>
     </div>
 </body>

@@ -4,6 +4,7 @@ body {
     font-family: 'Open Sans', sans-serif;
     background-image: url("Resources/poker-background.jpg");
     color: white;
+    overflow-y: hidden;
 }
 
 #MainMenu {
@@ -69,7 +70,7 @@ input {
     background-repeat: no-repeat;*/
     position: relative;
 }
-#Wallet {
+#LastAction {
     text-align: center;
     position: relative;
     
@@ -98,14 +99,29 @@ input {
     outline: 0;
 }
 .PlayerButtons:hover {
-    height: 90%;
-    -webkit-transform: translate(0%, -5%);
-    transform: translate(0%, -5%);
+    transform: scale(1.05);
 }
 .PlayerButtons:active {
-    height: 100%;
-    -webkit-transform: translate(0%, 0%);
-    transform: translate(0%, 0%);
+    transform: scale(0.95); 
+}
+.PlayerButtons.disabled {
+    color: gray;
+    border: solid gray 2px;
+}
+.PlayerButtons.disabled:focus {
+    outline: 0;
+    color: gray;
+    border: solid gray 2px;
+}
+.PlayerButtons.disabled:hover {
+    transform: scale(1);
+    color: gray;
+    border: solid gray 2px;
+}
+.PlayerButtons.disabled:active {
+    transform: scale(1);
+    color: gray;
+    border: solid gray 2px; 
 }
 
 /* browse styling */

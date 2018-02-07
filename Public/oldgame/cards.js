@@ -1,3 +1,13 @@
+
+
+var cards = [];
+var Players = [];
+var Round;
+
+var Pot = 0;
+var Blind = 10;
+var Raise = false;
+
 function PlayingCard(suit, num, own) 
 {
     this.suitnum = suit;
@@ -22,20 +32,11 @@ function PlayingCard(suit, num, own)
     this.fullname = this.numdisplay + " of " + this.suitname;
 }
 
-var cards = [];
-var Players = [];
-var Round;
-
-var Pot = 0;
-var Blind = 10;
-var Raise = false;
-
 function Main()
 {
     MakeDeck();
     //ShuffleDeck(cards);
     StartGame();
-
     CheckDeck();
 }
 
@@ -242,15 +243,15 @@ function DetermineHandRank(PlayerHandID)
     var ismatchingsuits = false, ismatchingnumbers = false;
     var suitpointer, suitcounter = 0;
     var firstofsuit = true;
-    /*
+    
     for (const key in cards) {
         if (cards.hasOwnProperty(key)) {
             const card = cards[key];
             if (card.Owner == PlayerHandID) totalhand.push(card);
             if (card.Owner == "Dealer") totalhand.push(card);
         }
-    }*/
-    totalhand = fullhouse1;
+    }
+    //totalhand = fullhouse1;
     /*
     
     for (const i in self.players[PlayerHandID].hand) {
@@ -315,10 +316,6 @@ function DetermineHandRank(PlayerHandID)
         else if (samecards[i] == 4) four = true;
     }
 
-    console.log ("Pairs detected: " + pairs);
-    console.log ("Three detected: " + three);
-    console.log ("Four detected: " + four);
-
     if (four && handvalue < handStrength.FOURKIND) handvalue = handStrength.FOURKIND;
     else if (three && pairs > 0 && handvalue < handStrength.FULLHOUSE) handvalue = handStrength.FULLHOUSE;
     else if (three && handvalue < handStrength.THREEKIND) handvalue = handStrength.THREEKIND;
@@ -338,7 +335,7 @@ function DetermineHandRank(PlayerHandID)
             if (suitFlush[card.suitnum] == 5 && handvalue < handStrength.FLUSH) handvalue = handStrength.FLUSH;
         }
     }
-    console.log("In flush with: " + suitFlush);
+    //console.log("In flush with: " + suitFlush);
     
     for (let key = 0; key < totalhand.length - 1; key++) {
         const card = totalhand[key];
@@ -348,7 +345,7 @@ function DetermineHandRank(PlayerHandID)
         }
     }
 
-    console.log("Straight coutner: " + straight);
+    //console.log("Straight coutner: " + straight);
     if (straight == 5)
     {
         if (handvalue < handStrength.STRAIGHT)
@@ -371,16 +368,85 @@ function DetermineHandRank(PlayerHandID)
         }
         if (royalFlush) handvalue = handStrength.ROYAL;
     }
-    console.log(totalhand);
-    console.log("Hand Strength: " + handvalue);
+    //console.log(totalhand);
+    //console.log("Hand Strength: " + handvalue);
 
     return handvalue;
 }
 
-function SecondaryCheck(totalhand)
+function MatchTest(playerQuantity)
 {
-    
+    /*
+    if (DetermineHandRank(p1) == DetermineHandRank(p2)) SecondaryCheck(p1, p2);
+    else if (DetermineHandRank(p1) > DetermineHandRank(p2)) console.log("P1 Wins!");
+    else console.log("P2 Wins");
+    */
+    var scores = [];
+    var highestScoreHolder = 0, compareResult;
+    for (var i = 0; i < playerQuantity; i++)
+    {
+        scores[i] = DetermineHandRank(i);
+        if (i > 0 && scores[i] > scores[highestScoreHolder]) highestScoreHolder = i;
+        else if (i > 0 && scores[i] == scores[highestScoreHolder])
+        {
+            console.log("Comparing P" + (highestScoreHolder + 1) + " and P" + (i + 1));
+            compareResult = SecondaryCheck(highestScoreHolder, i);
+            if (compareResult == 0) console.log("Draw");
+            else if (compareResult == 1) console.log("P" + (highestScoreHolder + 1) + " won against P" + (i + 1));
+            else if (compareResult == 2) 
+            {
+                console.log("P" + (i + 1) + " won against P" + (highestScoreHolder + 1) + "! Swapping places...");
+                highestScoreHolder = i;
+            }
+        }
+    }
+    console.log(scores);
+    console.log("Player " + (highestScoreHolder+1) + " wins!");
 }
+
+function SecondaryCheck(firstPlayer, secondPlayer)
+{
+    var firstPlayerhand = [], secondPlayerhand = [], temp;
+    for (const key in cards) {
+        if (cards.hasOwnProperty(key)) {
+            const card = cards[key];
+            if (card.Owner == firstPlayer) firstPlayerhand.push(card);
+            if (card.Owner == secondPlayer) secondPlayerhand.push(card);
+        }
+    }
+    //Highest num first after converting aces from 1 to 14
+    if (firstPlayerhand[0].Number == 1) firstPlayerhand[0].Number = 14;
+    if (firstPlayerhand[1].Number == 1) firstPlayerhand[1].Number = 14;
+    if (secondPlayerhand[0].Number == 1) secondPlayerhand[0].Number = 14;
+    if (secondPlayerhand[1].Number == 1) secondPlayerhand[1].Number = 14;
+
+    if (firstPlayerhand[0].Number < firstPlayerhand[1].Number)
+    {
+        temp = firstPlayerhand[0];
+        firstPlayerhand[0] = firstPlayerhand[1];
+        firstPlayerhand[1] = temp;
+    }
+    if (secondPlayerhand[0].Number < secondPlayerhand[1].Number)
+    {
+        temp = secondPlayerhand[0];
+        secondPlayerhand[0] = secondPlayerhand[1];
+        secondPlayerhand[1] = temp;
+    }
+    console.log(firstPlayerhand);
+    console.log(secondPlayerhand);
+
+    //Kicker comparisson
+    if (firstPlayerhand[0].Number == secondPlayerhand[0].Number)
+    {
+        if(firstPlayerhand[1].Number == secondPlayerhand[1].Number) return 0;
+        else if (firstPlayerhand[1].Number > secondPlayerhand[1].Number) return 1;
+        else return 2;
+    }
+    else if (firstPlayerhand[0].Number > secondPlayerhand[0].Number) return 1;
+    else return 2;
+}
+
+
 
 function SearchForCard(_card, PTCards)
 {
